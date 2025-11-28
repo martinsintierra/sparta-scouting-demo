@@ -164,11 +164,11 @@ with tab_about:
     proyecto/
     ├── Home.py                    # Landing page
     ├── pages/
-    │   ├── 1_🔍_Buscar.py        # Búsqueda principal
-    │   ├── 2_⚖️_Comparar.py      # Comparaciones
-    │   ├── 3_🗺️_Explorador_PCA.py # Mapas de similitud
-    │   ├── 4_📈_Evolucion.py     # Análisis temporal
-    │   └── 5_⚙️_Configuracion.py # Este panel
+    │   ├── 1_Buscar.py        # Búsqueda principal
+    │   ├── 2_Comparar.py      # Comparaciones
+    │   ├── 3_Explorador_PCA.py # Mapas de similitud
+    │   ├── 4_Evolucion.py     # Análisis temporal
+    │   └── 5_Configuracion.py # Este panel
     └── utils/
         ├── database.py            # Queries a BigQuery
         ├── search.py              # Búsqueda fuzzy

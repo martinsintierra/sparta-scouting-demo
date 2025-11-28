@@ -9,7 +9,7 @@ logger = setup_logger(__name__)
 
 # Configuración de página
 st.set_page_config(
-    page_title="Scouting Pro AI", 
+    page_title="Scouting Pro", 
     layout="wide", 
     page_icon="⚽",
     initial_sidebar_state="expanded"

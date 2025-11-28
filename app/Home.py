@@ -2,6 +2,12 @@ import streamlit as st
 from utils.database import get_bigquery_client, get_system_stats
 from utils.logger import setup_logger
 
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
+
+
 logger = setup_logger(__name__)
 
 # Configuración de página
@@ -43,9 +49,12 @@ st.markdown("""
 # Inicializar cliente BigQuery
 if 'client' not in st.session_state:
     st.session_state.client = get_bigquery_client()
-    logger.info("Cliente BigQuery inicializado en session_state")
 
 client = st.session_state.client
+
+if not client:
+    st.error("⚠️ No se pudo conectar a BigQuery")
+    st.stop()
 
 # Header
 st.title("⚽ Scouting Pro AI - Motor Vectorial de Similitud")

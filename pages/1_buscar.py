@@ -10,6 +10,8 @@ from utils.search import buscar_jugadores_fuzzy, format_player_label
 from utils.visualization import mostrar_tarjeta_jugador
 from utils.logger import setup_logger, log_user_action
 
+
+
 logger = setup_logger(__name__)
 
 # Configuración

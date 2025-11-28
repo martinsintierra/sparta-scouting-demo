@@ -13,6 +13,23 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 
 
+def get_bigquery_client():
+    try:
+        # Intenta leer de los secrets de Streamlit
+        if "gcp_service_account" in st.secrets:
+            key_dict = st.secrets["gcp_service_account"]
+            creds = service_account.Credentials.from_service_account_info(key_dict)
+            return bigquery.Client(credentials=creds, project=key_dict["project_id"])
+        else:
+            # Fallback para local (si tienes el json en tu pc)
+            return bigquery.Client(project="proyecto-scouting-futbol")
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
+        return None
+
+# Asignación correcta (SIN duplicar el client =)
+client = get_bigquery_client()
+
 
 # ============================================================
 # 1. CONFIGURACIÓN VISUAL
@@ -55,7 +72,6 @@ st.markdown("""
 # CONFIGURACIÓN DEL PROYECTO
 PROJECT_ID = "proyecto-scouting-futbol"
 DATASET = "dm_scouting"
-client = client = get_bigquery_client()
 
 # ============================================================
 # 2. FUNCIONES AUXILIARES
@@ -66,18 +82,6 @@ CACHE_DIR = Path(".streamlit_cache")
 CACHE_DIR.mkdir(exist_ok=True)
 CACHE_FILE = CACHE_DIR / "players_index.parquet"
 CACHE_EXPIRY_HOURS = 24
-
-def get_bigquery_client():
-    """Obtiene cliente de BigQuery desde secrets de Streamlit"""
-    try:
-        # En Streamlit Cloud
-        credentials = service_account.Credentials.from_service_account_info(
-            st.secrets["gcp_service_account"]
-        )
-        return bigquery.Client(credentials=credentials, project=PROJECT_ID)
-    except:
-        # Localmente (fallback)
-        return bigquery.Client(project=PROJECT_ID)
 
 def normalizar_texto(texto):
     """Elimina tildes y caracteres especiales para búsqueda"""

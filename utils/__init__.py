@@ -31,6 +31,7 @@ from .database import (
     obtener_similares,
     obtener_evolucion_jugador,
     obtener_datos_pca,
+    obtener_percentiles_molde,
     get_system_stats
 )
 from .search import (
@@ -39,7 +40,7 @@ from .search import (
     format_player_label
 )
 from .visualization import (
-    mostrar_tarjeta_jugador,
+    mostrar_tarjeta_jugador_comparativa,
     mostrar_timeline_evolucion,
     mostrar_mapa_pca
 )
@@ -57,6 +58,7 @@ __all__ = [
     'obtener_similares',
     'obtener_evolucion_jugador',
     'obtener_datos_pca',
+    'obtener_percentiles_molde',
     'get_system_stats',
     
     # Search
@@ -65,7 +67,7 @@ __all__ = [
     'format_player_label',
     
     # Visualization
-    'mostrar_tarjeta_jugador',
+    'mostrar_tarjeta_jugador_comparativa',
     'mostrar_timeline_evolucion',
     'mostrar_mapa_pca',
 ]

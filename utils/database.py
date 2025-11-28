@@ -302,6 +302,59 @@ def obtener_datos_pca(posicion: str, temporada: int, _client: bigquery.Client) -
     
     return df
 
+@st.cache_data(ttl=3600)
+def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.Client) -> dict:
+    """
+    Obtiene percentiles del jugador molde para comparación en radar
+    
+    Args:
+        player_id: ID del jugador
+        temporada: Temporada
+        _client: Cliente BigQuery
+    
+    Returns:
+        Diccionario con percentiles
+    """
+    start_time = time.time()
+    
+    sql_percentiles = f"""
+        SELECT 
+            pct_xG,
+            pct_xA,
+            pct_prog_passes,
+            pct_dribbles,
+            pct_recoveries,
+            pct_aerial,
+            pct_rating
+        FROM `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo`
+        WHERE player_id = {player_id}
+          AND temporada_anio = {temporada}
+        LIMIT 1
+    """
+    
+    df = _client.query(sql_percentiles).to_dataframe()
+    
+    duration = time.time() - start_time
+    log_query_performance(logger, "obtener_percentiles_molde", duration, len(df))
+    
+    if df.empty:
+        logger.warning(f"No se encontraron percentiles para player_id={player_id}, temp={temporada}")
+        return {
+            'pct_xG': 0.5,
+            'pct_xA': 0.5,
+            'pct_prog_passes': 0.5,
+            'pct_dribbles': 0.5,
+            'pct_recoveries': 0.5,
+            'pct_aerial': 0.5,
+            'pct_rating': 0.5
+        }
+    
+    return df.iloc[0].to_dict()
+
+
+# Agregar al final del archivo, antes del return de get_system_stats
+
+
 
 def get_system_stats(_client: bigquery.Client) -> dict:
     """

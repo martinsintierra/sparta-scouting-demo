@@ -54,7 +54,7 @@ if not client:
     st.stop()
 
 # Header
-st.title("Scouting Proproprporpo  - Motor Vectorial de Similitud")
+st.title("Recurso de Scouting  - Motor Vectorial de Similitud")
 st.markdown("""
 Sistema de recomendación basado en **K-Nearest Neighbors** con ponderación por posición y decay temporal.  
 Encuentra jugadores similares usando xG, xA, pases progresivos, recuperaciones y más.
@@ -103,14 +103,14 @@ with col_nav1:
     - Resultados detallados con radar charts
     """)
 
-# with col_nav2:
-#     st.markdown("""
-#     #### Comparar Jugadores
-#     Compara lado a lado múltiples jugadores.
-#     - Comparación visual de estadísticas
-#     - Análisis de fortalezas/debilidades
-#     - Identificación de diferencias clave
-#     """)
+with col_nav2:
+    st.markdown("""
+    #### Comparar Jugadores
+    Compara lado a lado múltiples jugadores.
+    - Comparación visual de estadísticas
+    - Análisis de fortalezas/debilidades
+    - Identificación de diferencias clave
+    """)
 
 with col_nav3:
     st.markdown("""

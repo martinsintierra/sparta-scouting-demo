@@ -2,7 +2,7 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-from utils.database import get_all_players_index, obtener_similares
+from utils.database import get_all_players_index, obtener_similares, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
 from utils.visualization import mostrar_tarjeta_jugador_comparativa
 from utils.logger import setup_logger, log_user_action
@@ -110,6 +110,16 @@ if nombre_buscar:
                 "temporada": temp_origen
             })
             
+            percentiles_molde = obtener_percentiles_molde(
+            player_id=int(id_origen),
+            temporada=temp_origen,
+            _client=client
+        )
+            # Agregar percentiles al row_origen para que la tarjeta comparativa los use
+            row_origen_enriquecido = row_origen.copy()
+            for key, value in percentiles_molde.items():
+            row_origen_enriquecido[key] = value
+
             # Perfil EXPANDIDO del jugador seleccionado
             st.divider()
             st.subheader(f"🎯 Perfil del Molde: {row_origen['player']}")
@@ -180,6 +190,8 @@ if nombre_buscar:
                 "📅 Temporada 2024", 
                 "📊 Todas las Temporadas"
             ])
+
+
             
             # Función auxiliar para mostrar resultados
             def mostrar_tab_temporada(temp_destino, key_suffix):
@@ -226,7 +238,7 @@ if nombre_buscar:
                     # NUEVO: Mostrar tarjeta COMPARATIVA con el molde
                     mostrar_tarjeta_jugador_comparativa(
                         jugador_detalle=jugador_detalle,
-                        molde=row_origen,
+                        molde=row_origen_enriquecido,
                         unique_key=f"{key_suffix}_{idx}"
                     )
                     

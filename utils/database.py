@@ -197,7 +197,9 @@ def obtener_similares(
             v.pct_xA as destino_pct_xa,
             v.pct_prog_passes as destino_pct_prog,
             v.pct_dribbles as destino_pct_dribbles,
-            v.pct_recoveries as destino_pct_recov
+            v.pct_recoveries as destino_pct_recov,
+            v.pct_aerial as destino_pct_aerial,
+            v.pct_rating as destino_pct_rating
         FROM `{PROJECT_ID}.{DATASET}.scouting_similitud_pro_v2` s
         JOIN `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo` v
           ON CAST(v.player_id AS STRING) = s.jugador_similar_id

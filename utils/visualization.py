@@ -10,12 +10,13 @@ from .logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def mostrar_tarjeta_jugador(jugador_detalle: pd.Series, unique_key: str):
+def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Series, unique_key: str):
     """
-    Renderiza la tarjeta de detalle de un jugador
+    Renderiza tarjeta de detalle con comparación directa contra el molde
     
     Args:
-        jugador_detalle: Serie con datos del jugador
+        jugador_detalle: Serie con datos del jugador similar
+        molde: Serie con datos del jugador molde
         unique_key: Clave única para widgets
     """
     with st.container():
@@ -58,29 +59,65 @@ def mostrar_tarjeta_jugador(jugador_detalle: pd.Series, unique_key: str):
             contrato = jugador_detalle['destino_contrato']
             st.metric("📄 Contrato", str(contrato)[:4] if pd.notnull(contrato) else "N/A")
         
-        # Stats de rendimiento
-        st.markdown("#### 📊 Estadísticas por 90 minutos")
+        # Stats de rendimiento COMPARATIVAS
+        st.markdown("#### 📊 Estadísticas por 90 minutos (vs Molde)")
         col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
         
-        with col_stat1:
-            st.metric("⭐ Rating", f"{jugador_detalle['destino_rating']:.2f}")
-        with col_stat2:
-            st.metric("⚽ Goles", f"{jugador_detalle['destino_goles']:.2f}")
-        with col_stat3:
-            st.metric("🎯 xG", f"{jugador_detalle['destino_xg']:.2f}")
-        with col_stat4:
-            st.metric("🅰️ Asist.", f"{jugador_detalle['destino_asistencias']:.2f}")
-        with col_stat5:
-            st.metric("📤 xA", f"{jugador_detalle['destino_xa']:.2f}")
-        with col_stat6:
-            st.metric("⬆️ Prog. Pass", f"{jugador_detalle['destino_prog_passes']:.2f}")
+        # Helper para calcular delta
+        def calc_delta(similar_val, molde_val):
+            if pd.notnull(similar_val) and pd.notnull(molde_val):
+                return similar_val - molde_val
+            return None
         
-        # Gráfico de Radar
-        st.markdown("#### 🎯 Perfil Comparativo (Percentiles)")
+        with col_stat1:
+            delta_rating = calc_delta(jugador_detalle['destino_rating'], molde['rating_promedio'])
+            st.metric(
+                "⭐ Rating", 
+                f"{jugador_detalle['destino_rating']:.2f}",
+                delta=f"{delta_rating:+.2f}" if delta_rating is not None else None
+            )
+        with col_stat2:
+            delta_goles = calc_delta(jugador_detalle['destino_goles'], molde.get('goals_p90', 0))
+            st.metric(
+                "⚽ Goles", 
+                f"{jugador_detalle['destino_goles']:.2f}",
+                delta=f"{delta_goles:+.2f}" if delta_goles is not None else None
+            )
+        with col_stat3:
+            delta_xg = calc_delta(jugador_detalle['destino_xg'], molde['xG_p90'])
+            st.metric(
+                "🎯 xG", 
+                f"{jugador_detalle['destino_xg']:.2f}",
+                delta=f"{delta_xg:+.2f}" if delta_xg is not None else None
+            )
+        with col_stat4:
+            delta_asist = calc_delta(jugador_detalle['destino_asistencias'], molde.get('assists_p90', 0))
+            st.metric(
+                "🅰️ Asist.", 
+                f"{jugador_detalle['destino_asistencias']:.2f}",
+                delta=f"{delta_asist:+.2f}" if delta_asist is not None else None
+            )
+        with col_stat5:
+            delta_xa = calc_delta(jugador_detalle['destino_xa'], molde.get('xA_p90', 0))
+            st.metric(
+                "📤 xA", 
+                f"{jugador_detalle['destino_xa']:.2f}",
+                delta=f"{delta_xa:+.2f}" if delta_xa is not None else None
+            )
+        with col_stat6:
+            delta_prog = calc_delta(jugador_detalle['destino_prog_passes'], molde.get('prog_passes_p90', 0))
+            st.metric(
+                "⬆️ Prog. Pass", 
+                f"{jugador_detalle['destino_prog_passes']:.2f}",
+                delta=f"{delta_prog:+.2f}" if delta_prog is not None else None
+            )
+        
+        # Gráfico de Radar COMPARATIVO
+        st.markdown("#### 🎯 Comparación de Perfiles (Percentiles)")
         
         categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones']
         
-        values_jugador = [
+        values_similar = [
             jugador_detalle.get('destino_pct_xg', 0) * 100,
             jugador_detalle.get('destino_pct_xa', 0) * 100,
             jugador_detalle.get('destino_pct_prog', 0) * 100,
@@ -88,14 +125,36 @@ def mostrar_tarjeta_jugador(jugador_detalle: pd.Series, unique_key: str):
             jugador_detalle.get('destino_pct_recov', 0) * 100,
         ]
         
+        # Valores del molde (necesitamos buscarlos en la base si no están)
+        # Por ahora usamos valores por defecto si no existen
+        values_molde = [
+            molde.get('pct_xG', 0.5) * 100 if 'pct_xG' in molde else 50,
+            molde.get('pct_xA', 0.5) * 100 if 'pct_xA' in molde else 50,
+            molde.get('pct_prog_passes', 0.5) * 100 if 'pct_prog_passes' in molde else 50,
+            molde.get('pct_dribbles', 0.5) * 100 if 'pct_dribbles' in molde else 50,
+            molde.get('pct_recoveries', 0.5) * 100 if 'pct_recoveries' in molde else 50,
+        ]
+        
         fig = go.Figure()
         
+        # Molde (trazo gris semi-transparente)
         fig.add_trace(go.Scatterpolar(
-            r=values_jugador,
+            r=values_molde,
+            theta=categories,
+            fill='toself',
+            name=f"{molde['player']} (Molde)",
+            line_color='rgba(150, 150, 150, 0.6)',
+            fillcolor='rgba(150, 150, 150, 0.2)'
+        ))
+        
+        # Jugador similar (trazo destacado)
+        fig.add_trace(go.Scatterpolar(
+            r=values_similar,
             theta=categories,
             fill='toself',
             name=jugador_detalle['destino_nombre'],
-            line_color='#667eea'
+            line_color='#667eea',
+            fillcolor='rgba(102, 126, 234, 0.3)'
         ))
         
         fig.update_layout(
@@ -106,7 +165,14 @@ def mostrar_tarjeta_jugador(jugador_detalle: pd.Series, unique_key: str):
                 )
             ),
             showlegend=True,
-            height=400
+            height=450,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.15,
+                xanchor="center",
+                x=0.5
+            )
         )
         
         st.plotly_chart(fig, use_container_width=True, key=f"radar_{unique_key}")

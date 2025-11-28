@@ -2,14 +2,10 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-
-
 from utils.database import get_all_players_index, obtener_similares
 from utils.search import buscar_jugadores_fuzzy, format_player_label
-from utils.visualization import mostrar_tarjeta_jugador
+from utils.visualization import mostrar_tarjeta_jugador_comparativa
 from utils.logger import setup_logger, log_user_action
-
-
 
 logger = setup_logger(__name__)
 
@@ -31,18 +27,18 @@ if not client:
     st.stop()
 
 # Cargar índice de jugadores (solo primera vez)
-with st.spinner("Cargando índice de jugadores..."):
+with st.spinner("🔄 Cargando índice de jugadores..."):
     df_players_index = get_all_players_index(client)
 
 st.sidebar.success(f"✅ Índice cargado: {len(df_players_index):,} jugadores")
 
 # Sidebar - Búsqueda y filtros
-st.sidebar.header("Configuración de Búsqueda")
+st.sidebar.header("🔍 Configuración de Búsqueda")
 
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
     placeholder="Ej: Retegui, Borja, Arce",
-    help="💡 **Búsqueda inteligente:** Escribí con errores de tipeo, sin tildes o mayúsculas. ¡No hay drama!"
+    help="💡 **Búsqueda inteligente:** Escribí con errores de tipeo, sin tildes o mayúsculas. !No pasa nada!"
 )
 
 col_filtro1, col_filtro2 = st.sidebar.columns(2)
@@ -50,7 +46,7 @@ with col_filtro1:
     temp_origen_filter = st.selectbox(
         "Temporada Origen",
         options=[2025, 2024, 2023, 2022, 2021],
-        index=1
+        index=0
     )
 
 with col_filtro2:
@@ -65,7 +61,7 @@ with col_filtro2:
 st.sidebar.divider()
 
 # Opciones avanzadas
-with st.sidebar.expander("Opciones Avanzadas"):
+with st.sidebar.expander("⚙️ Opciones Avanzadas"):
     umbral_fuzzy = st.slider(
         "Tolerancia de búsqueda (fuzzy)",
         min_value=50,
@@ -114,10 +110,11 @@ if nombre_buscar:
                 "temporada": temp_origen
             })
             
-            # Perfil del jugador seleccionado
+            # Perfil EXPANDIDO del jugador seleccionado
             st.divider()
             st.subheader(f"🎯 Perfil del Molde: {row_origen['player']}")
             
+            # Métricas principales (6 columnas)
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             
             with col1:
@@ -133,11 +130,50 @@ if nombre_buscar:
             with col6:
                 st.metric("🏃 Partidos", f"{row_origen['partidos_jugados']}")
             
+            # NUEVO: Stats expandidas del molde
+            with st.expander("📊 Ver estadísticas completas del molde", expanded=False):
+                col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
+                
+                with col_stat1:
+                    st.metric("⚽ Goles/90", f"{row_origen.get('goals_p90', 0):.2f}")
+                with col_stat2:
+                    st.metric("🅰️ Asist/90", f"{row_origen.get('assists_p90', 0):.2f}")
+                with col_stat3:
+                    st.metric("📤 xA/90", f"{row_origen.get('xA_p90', 0):.2f}")
+                with col_stat4:
+                    st.metric("⬆️ Prog.Pass/90", f"{row_origen.get('prog_passes_p90', 0):.2f}")
+                with col_stat5:
+                    st.metric("🏃 Dribbles/90", f"{row_origen.get('dribbles_p90', 0):.2f}")
+                with col_stat6:
+                    st.metric("🔄 Recoveries/90", f"{row_origen.get('recoveries_p90', 0):.2f}")
+            
             st.info(f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**")
             
             # Tabs de resultados
             st.divider()
-            st.subheader("Jugadores Similares")
+            st.subheader("🔎 Jugadores Similares")
+            
+            # NUEVO: Info sobre el score
+            with st.expander("ℹ️ ¿Cómo interpretar el porcentaje de similitud?"):
+                st.markdown("""
+                El **score de similitud** mide qué tan parecidos son dos perfiles estadísticos en una escala de 0-100%:
+                
+                | Rango | Interpretación | Qué significa |
+                |-------|----------------|---------------|
+                | **50-100%** | Muy similar | Perfiles casi idénticos. Jugadores intercambiables estadísticamente. |
+                | **40-49%** | Similar | Buen match. Comparten características principales pero con algunas diferencias. |
+                | **30-39%** | Moderadamente similar | Match aceptable. Tienen puntos en común pero también diferencias notables. |
+                | **20-29%** | Poco similar | Match débil. Solo comparten algunas características generales. |
+                | **<20%** | Muy diferente | Perfiles distintos. Probablemente no sean buenas alternativas. |
+                
+                **Notas importantes:**
+                - Scores >50% son raros porque implican perfiles casi idénticos
+                - Un score de 40-45% ya es un match muy bueno en la práctica
+                - El contexto importa: un 35% en delanteros puede ser mejor que un 45% en defensores
+                - Scores bajos no significan que el jugador sea malo, solo que es diferente al molde
+                
+                **Tip:** Si no encontrás matches >40%, considera buscar jugadores de otras posiciones o ajustar el molde.
+                """)
             
             tab_2025, tab_2024, tab_todas = st.tabs([
                 "🆕 Temporada 2025", 
@@ -150,7 +186,27 @@ if nombre_buscar:
                 df_results = obtener_similares(id_origen, temp_origen, temp_destino, min_score, client)
                 
                 if not df_results.empty:
-                    st.success(f"Encontrados {len(df_results)} jugadores similares")
+                    st.success(f"✅ Encontrados {len(df_results)} jugadores similares")
+                    
+                    # Mostrar distribución de scores
+                    max_score = df_results['score_similitud'].max()
+                    avg_score = df_results['score_similitud'].mean()
+                    
+                    col_info1, col_info2, col_info3 = st.columns(3)
+                    with col_info1:
+                        st.metric("🎯 Mejor Match", f"{max_score:.1f}%")
+                    with col_info2:
+                        st.metric("📊 Promedio", f"{avg_score:.1f}%")
+                    with col_info3:
+                        if max_score >= 45:
+                            calidad = "Excelente"
+                        elif max_score >= 35:
+                            calidad = "Bueno"
+                        elif max_score >= 25:
+                            calidad = "Aceptable"
+                        else:
+                            calidad = "Bajo"
+                        st.metric("✅ Calidad", calidad)
                     
                     # Selector
                     jugadores_lista = [
@@ -167,8 +223,12 @@ if nombre_buscar:
                     idx = jugadores_lista.index(jugador_seleccionado)
                     jugador_detalle = df_results.iloc[idx]
                     
-                    # Mostrar tarjeta
-                    mostrar_tarjeta_jugador(jugador_detalle, f"{key_suffix}_{idx}")
+                    # NUEVO: Mostrar tarjeta COMPARATIVA con el molde
+                    mostrar_tarjeta_jugador_comparativa(
+                        jugador_detalle=jugador_detalle,
+                        molde=row_origen,
+                        unique_key=f"{key_suffix}_{idx}"
+                    )
                     
                     # Tabla resumen
                     with st.expander("📋 Ver tabla completa de resultados"):
@@ -207,8 +267,9 @@ if nombre_buscar:
             st.sidebar.warning("❌ No se encontraron jugadores con esos criterios")
             st.sidebar.info(f"""
             **💡 Tips de búsqueda:**
+            - Intentá con menos letras (ej: "Mes" en vez de "Messi")
             - Reduce la tolerancia fuzzy (⚙️ Opciones Avanzadas)
-            - Cambia la temporada de origen
+            - Cambiá la temporada de origen
             
             **Ejemplos que funcionan:**
             - "Alvares" → encuentra "Álvarez"  
@@ -231,3 +292,5 @@ else:
     
     La búsqueda es inteligente y tolerante a errores de tipeo.
     """)
+
+logger.info("Buscar page rendered successfully")

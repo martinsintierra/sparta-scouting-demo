@@ -89,41 +89,35 @@ else:
 st.divider()
 
 # Guía de uso
-st.markdown("### 🚀 Comenzar")
+st.markdown("### Comenzar")
 
 col_nav1, col_nav2, col_nav3 = st.columns(3)
 
 with col_nav1:
     st.markdown("""
-    #### 🔍 Buscar Jugadores
+    #### Buscar Jugadores
     Encuentra jugadores similares a un perfil específico.
     - Búsqueda inteligente con tolerancia a errores
     - Filtros por temporada y similitud
     - Resultados detallados con radar charts
-    
-    [Ir a Buscar →](1_buscar)
     """)
 
-with col_nav2:
-    st.markdown("""
-    #### ⚖️ Comparar Jugadores
-    Compara lado a lado múltiples jugadores.
-    - Comparación visual de estadísticas
-    - Análisis de fortalezas/debilidades
-    - Identificación de diferencias clave
-    
-    [Ir a Comparar →](Comparar)
-    """)
+# with col_nav2:
+#     st.markdown("""
+#     #### Comparar Jugadores
+#     Compara lado a lado múltiples jugadores.
+#     - Comparación visual de estadísticas
+#     - Análisis de fortalezas/debilidades
+#     - Identificación de diferencias clave
+#     """)
 
 with col_nav3:
     st.markdown("""
-    #### 🗺️ Explorador PCA
+    #### Explorador PCA
     Visualiza perfiles en un mapa 2D.
     - Reducción dimensional inteligente
     - Identificación de clusters
     - Descubrimiento de patrones
-    
-    [Ir a Explorador →](Explorador_PCA)
     """)
 
 st.divider()
@@ -135,12 +129,12 @@ col_feat1, col_feat2 = st.columns(2)
 
 with col_feat1:
     st.markdown("""
-    **🎯 Precisión del Modelo:**
+    **Precisión del Modelo:**
     - Algoritmo K-NN con ponderación específica por posición
     - Decay temporal para priorizar datos recientes
     - Normalización por percentiles dentro de cada posición
     
-    **📊 Métricas Analizadas:**
+    **Métricas Analizadas:**
     - xG, xA (Expected Goals/Assists)
     - Pases progresivos y key passes
     - Dribbles exitosos
@@ -150,14 +144,14 @@ with col_feat1:
 
 with col_feat2:
     st.markdown("""
-    **🔧 Herramientas Disponibles:**
+    **Herramientas Disponibles:**
     - Búsqueda fuzzy con corrección de errores
     - Visualización de evolución histórica
     - Mapas PCA de similitud
     - Comparaciones multi-jugador
     - Exportación de datos
     
-    **🚀 Performance:**
+    **Performance:**
     - Caché inteligente en disco (24h)
     - Búsquedas locales instantáneas
     - Queries optimizadas a BigQuery
@@ -169,9 +163,9 @@ st.divider()
 # Footer
 st.markdown("""
 ---
-**💡 Sugerencia:** Comienza explorando la sección **🔍 Buscar** para encontrar jugadores similares a tu perfil ideal.
+**💡 Sugerencia:** Empezá explorando la sección Buscar para encontrar jugadores similares a tu perfil ideal.
 
-Para más información, consulta la **📚 Guía de Interpretación** en la barra lateral.
+Para más información, consultá el Glosario (por favor) en la barra lateral!
 """)
 
 logger.info("Home page rendered successfully")

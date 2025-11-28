@@ -69,7 +69,7 @@ with tab_glosario:
     with col3:
         st.markdown("""
         **Recoveries (Recuperaciones)**  
-        Veces que un jugador recupera el balón cuando no había nadie del equipo rival en 
+        Veces que un jugador recupera la pelota cuando no había nadie del equipo rival en 
         posesión clara.
         
         **Tackles**  
@@ -82,7 +82,7 @@ with tab_glosario:
     with col4:
         st.markdown("""
         **Aerial Won (Duelos Aéreos Ganados)**  
-        Duelos por balones aéreos ganados. Especialmente relevante para defensores centrales 
+        Duelos por balones aéreos ganados. Relevante para defensores centrales 
         y delanteros.
         
         **Blocks**  
@@ -189,7 +189,7 @@ with tab_tecnico:
     **Ventajas del K-NN:**
     - No asume una relación lineal entre variables
     - Robusto a datos atípicos
-    - Intuitivo: "muéstrame quién se parece a este jugador"
+    - Intuitivo: "mostrame quién se "parece" a este jugador"
     
     **Limitaciones:**
     - Sensible a la escala de las variables (por eso normalizamos)
@@ -269,7 +269,7 @@ with tab_tecnico:
     
     **Limitaciones:**
     - Puede dar falsos positivos si el umbral es muy bajo
-    - No entiende contexto semántico ("Kun" no encuentra "Agüero" automáticamente)
+    - No entiende contexto semántico ("Kun" no encontraría "Agüero" automáticamente)
     """)
     
     st.markdown("""
@@ -320,7 +320,7 @@ with tab_disclaimers:
         st.markdown("""
         **Aspectos tácticos y cognitivos:**
         - Inteligencia táctica y lectura del juego
-        - Posicionamiento sin balón
+        - Posicionamiento sin pelota
         - Comunicación y liderazgo en cancha
         - Capacidad de adaptación táctica
         - Timing y toma de decisiones bajo presión
@@ -339,14 +339,14 @@ with tab_disclaimers:
         - Calidad de compañeros que lo rodean
         - Sistema de juego y rol específico del DT
         - Momento emocional y situación personal
-        - Influencia del entrenador
+        - Influencia del técnico
         - Adaptabilidad a nuevos entornos o ligas
         
         **Aspectos intangibles:**
         - Mentalidad y carácter competitivo
         - Profesionalismo y disciplina
         - Capacidad de liderazgo
-        - Ambición y hambre de triunfo
+        - Ambición
         """)
     
     st.markdown("""
@@ -357,20 +357,20 @@ with tab_disclaimers:
     st.info("""
     **Este sistema es una PRIMERA APROXIMACIÓN, no un veredicto final.**
     
-    Las estadísticas son como un mapa: te muestran el terreno, pero no caminan en tu lugar.
+    Las estadísticas son una suerte de mapa: te muestran el terreno, pero no caminan en tu lugar.
     """)
     
     st.markdown("""
     **Uso correcto del sistema:**
     
     1. **Filtro inicial**  
-       Identifica jugadores con perfiles estadísticos similares al que buscas.
+       Identifica jugadores con perfiles estadísticos similares al que se busca.
     
     2. **Generación de hipótesis**  
-       Descubre opciones que quizás no habías considerado (ligas menores, mercados menos visibles).
+       Descubre opciones que quizás no se habían considerado (ligas menores, mercados menos visibles).
     
     3. **Punto de partida**  
-       Las estadísticas te dicen "dónde mirar", no "a quién fichar".
+       Las estadísticas te dicen "dónde mirar", no "a quién comprar".
     
     **Después del análisis estadístico, es fundamental:**
     
@@ -393,7 +393,7 @@ with tab_disclaimers:
         st.error("""
         **Interpretación INCORRECTA:**
         
-        "Este delantero de 24 años tiene xG alto y valor bajo. Es una ganga, hay que ficharlo ya."
+        "Este delantero de 24 años tiene xG alto y valor bajo. Está regalado y hay que agarrarlo ya."
         
         *Problema: decisión basada solo en números, sin contexto ni validación.*
         """)
@@ -402,10 +402,10 @@ with tab_disclaimers:
         st.success("""
         **Interpretación CORRECTA:**
         
-        "Este perfil estadístico es interesante. Valdría la pena:
+        "Este perfil estadístico es interesante. Estaría bueno:
         - Ver 3-4 partidos completos
         - Investigar por qué su valor es bajo (lesiones, problemas de conducta, liga menor)
-        - Evaluar si su estilo encaja con nuestro sistema
+        - Evaluar si su estilo encaja con sistema X
         - Confirmar con scouts locales si el dato es real o hay contexto que explique los números"
         
         *Enfoque: estadísticas como punto de partida, no como decisión final.*
@@ -419,13 +419,13 @@ with tab_disclaimers:
     col_peso1, col_peso2, col_peso3 = st.columns(3)
     
     with col_peso1:
-        st.metric("📊 Datos estadísticos", "30%", help="Lo que se ve en este sistema")
+        st.metric("Datos estadísticos", "30%", help="Lo que se ve en este sistema")
     
     with col_peso2:
-        st.metric("👁️ Observación directa", "40%", help="Ver jugar al jugador en vivo o en video")
+        st.metric("Observación directa", "40%", help="Ver jugar al jugador en vivo o en video")
     
     with col_peso3:
-        st.metric("🧠 Contexto e intuición", "30%", help="Experiencia humana, conversaciones, contexto")
+        st.metric("Contexto e intuición", "30%", help="Experiencia humana, conversaciones, contexto")
     
     st.markdown("""
     Un buen proceso de scouting combina estas tres dimensiones. Ninguna por sí sola es suficiente.
@@ -465,10 +465,9 @@ with tab_disclaimers:
     siendo un deporte humano donde el contexto, el momento y los intangibles importan tanto 
     como los números.
     
-    Este sistema te ayuda a trabajar de forma más eficiente, pero nunca reemplaza el ojo 
-    experto, la conversación humana y el análisis de contexto.
+    Este sistema ayudaría a trabajar de forma más eficiente, pero nunca sería el reemplazo del ojo 
+    experto, la conversación entre pares y/o el análisis de contexto.
     
-    Usa los datos como aliados, no como dictadores de decisiones.
     """)
 
 logger.info("Glosario page rendered")

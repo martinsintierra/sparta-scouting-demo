@@ -1,0 +1,10 @@
+google-cloud-bigquery
+google-cloud-storage
+pandas
+streamlit
+plotly
+scikit-learn
+numpy
+db-dtypes
+thefuzz
+pyarrow

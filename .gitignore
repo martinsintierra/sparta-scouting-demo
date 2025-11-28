@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.DS_Store
+
+# Ignorar entornos virtuales
+venv/
+env/
+
+# IGNORAR CLAVES Y SECRETOS (¡CRUCIAL!)
+*.json
+*.pem
+.streamlit/secrets.toml
+
+# Ignorar archivos de IDE
+.vscode/
+.idea/

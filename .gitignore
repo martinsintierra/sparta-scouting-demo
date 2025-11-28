@@ -10,7 +10,7 @@ env/
 # IGNORAR CLAVES Y SECRETOS (¡CRUCIAL!)
 *.json
 *.pem
-.streamlit/secrets.toml
+streamlit/
 
 # Ignorar archivos de IDE
 .vscode/

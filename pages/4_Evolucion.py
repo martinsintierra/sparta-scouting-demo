@@ -1,18 +1,20 @@
 import streamlit as st
-import sys
-from pathlib import Path
 
 from utils.database import get_all_players_index, obtener_evolucion_jugador
 from utils.search import normalizar_texto
 from utils.visualization import mostrar_timeline_evolucion
 from utils.logger import setup_logger
+from utils.i18n import language_selector, t, get_language
 
 logger = setup_logger(__name__)
 
-st.set_page_config(page_title="Evolución de Jugadores", layout="wide", page_icon="📈")
+st.set_page_config(page_title=t("evolution_title"), layout="wide", page_icon="📈")
 
-st.title("📈 Evolución Histórica de Jugadores")
-st.markdown("Analiza cómo ha evolucionado el rendimiento de un jugador a través de las temporadas.")
+# Selector de idioma
+language_selector()
+
+st.title(t("evolution_title"))
+st.markdown(t("evolution_subtitle"))
 
 # Verificar cliente
 if 'client' not in st.session_state:
@@ -22,29 +24,29 @@ if 'client' not in st.session_state:
 client = st.session_state.client
 
 if not client:
-    st.error("❌ Error de conexión con BigQuery")
+    st.error(f"❌ {t('connection_error')} BigQuery")
     st.stop()
 
 # Cargar índice COMPLETO (todas las temporadas)
-with st.spinner("Cargando índice de jugadores..."):
+with st.spinner(f"{t('loading')}..."):
     df_players_index = get_all_players_index(client)
 
 # Sidebar - Búsqueda SIN filtro de temporada
-st.sidebar.header("Buscar Jugador")
+st.sidebar.header(t("search_player"))
 
 nombre_buscar = st.sidebar.text_input(
-    "Nombre del jugador", 
-    placeholder="Ej: Valentin Gomez, Retegui...",
-    help="Escribí el nombre y verás todas sus temporadas disponibles"
+    t("player_name"), 
+    placeholder="Ej: Valentin Gomez, Retegui..." if get_language() == 'es' else "e.g., Valentin Gomez, Retegui...",
+    help=t("evolution_help")
 )
 
 umbral_fuzzy = st.sidebar.slider(
-    "Tolerancia de búsqueda",
+    t("search_tolerance"),
     min_value=50,
     max_value=100,
     value=70,
     step=5,
-    help="Más bajo = encuentra resultados con más errores de tipeo"
+    help=t("fuzzy_help")
 )
 
 if nombre_buscar:
@@ -88,19 +90,18 @@ if nombre_buscar:
     
     if not df_search.empty:
         # Agrupar por player_id para eliminar duplicados
-        # Tomar la temporada más reciente de cada jugador para el selector
         df_search_unique = df_search.sort_values('temporada_anio', ascending=False).groupby('player_id').first().reset_index()
         
-        # Formatear labels con club ACTUAL (más reciente)
+        # Formatear labels con club ACTUAL
         df_search_unique['label'] = df_search_unique.apply(
             lambda x: f"{x['player']} | {x['equipo_principal']} | {x['posicion']} | ⭐{x['rating_promedio']:.1f}",
             axis=1
         )
         
-        st.sidebar.success(f"✅ Encontrados {len(df_search_unique)} jugadores")
+        st.sidebar.success(t("results_found").format(len(df_search_unique)))
         
         seleccion_label = st.sidebar.selectbox(
-            "📋 Selecciona jugador:", 
+            f"📋 {t('select_player_list')}", 
             df_search_unique['label']
         )
         
@@ -110,21 +111,21 @@ if nombre_buscar:
         
         st.divider()
         
-        # Información básica (del registro más reciente)
+        # Información básica
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            st.metric("👤 Jugador", nombre_jugador)
+            st.metric(f"👤 {t('player_name') if get_language() == 'en' else 'Jugador'}", nombre_jugador)
         with col2:
-            st.metric("⚽ Club Actual", row_origen['equipo_principal'])
+            st.metric(f"⚽ {t('current_club')}", row_origen['equipo_principal'])
         with col3:
-            st.metric("📊 Posición", row_origen['posicion'])
+            st.metric(f"📊 {t('position')}", row_origen['posicion'])
         with col4:
-            st.metric("⭐ Rating Actual", f"{row_origen['rating_promedio']:.2f}")
+            st.metric(f"⭐ {t('current_rating')}", f"{row_origen['rating_promedio']:.2f}")
         
         st.divider()
         
         # Obtener evolución
-        with st.spinner("🔄 Cargando datos históricos..."):
+        with st.spinner(f"🔄 {t('loading_history')}..."):
             df_evo = obtener_evolucion_jugador(player_id, client)
         
         if not df_evo.empty and len(df_evo) >= 2:
@@ -137,7 +138,7 @@ if nombre_buscar:
             
             # Análisis adicional
             st.divider()
-            st.markdown("### 🔍 Análisis de Tendencias")
+            st.markdown(f"### 🔍 {t('trends_analysis')}")
             
             col_trend1, col_trend2, col_trend3 = st.columns(3)
             
@@ -154,83 +155,122 @@ if nombre_buscar:
             
             with col_trend1:
                 st.metric(
-                    "📊 Evolución del Rating", 
+                    f"📊 {t('rating_evolution')}", 
                     f"{rating_final:.2f}",
-                    delta=f"{delta_rating:+.2f} vs primera temp"
+                    delta=f"{delta_rating:+.2f} {t('vs_first_season')}"
                 )
             
             with col_trend2:
                 st.metric(
-                    "🎯 Evolución xG/90", 
+                    f"🎯 {t('xg_evolution')}", 
                     f"{xg_final:.2f}",
-                    delta=f"{delta_xg:+.2f} vs primera temp"
+                    delta=f"{delta_xg:+.2f} {t('vs_first_season')}"
                 )
             
             with col_trend3:
                 st.metric(
-                    "🏃 Partidos Totales", 
+                    f"🏃 {t('total_matches')}", 
                     f"{partidos_total}"
                 )
             
             # Insights automáticos
-            st.markdown("#### 💡 Insights Automáticos")
+            st.markdown(f"#### 💡 {t('automatic_insights')}")
             
             if delta_rating > 0.5:
-                st.success(f"✅ {nombre_jugador} ha mejorado significativamente su rating ({delta_rating:+.2f} puntos)")
+                st.success(t("improved_significantly").format(nombre_jugador, delta_rating))
             elif delta_rating < -0.5:
-                st.warning(f"⚠️ {nombre_jugador} ha experimentado una caída en su rating ({delta_rating:+.2f} puntos)")
+                st.warning(t("declined_rating").format(nombre_jugador, delta_rating))
             else:
-                st.info(f"ℹ️ {nombre_jugador} ha mantenido un rendimiento estable a lo largo de las temporadas")
+                st.info(t("stable_performance").format(nombre_jugador))
             
             # Mejor temporada
             mejor_temp = df_evo.loc[df_evo['rating_promedio'].idxmax()]
-            st.success(f"🏆 Mejor temporada: {int(mejor_temp['temporada_anio'])} con rating {mejor_temp['rating_promedio']:.2f}")
+            st.success(f"🏆 {t('best_season')}: {int(mejor_temp['temporada_anio'])} {t('with_rating')} {mejor_temp['rating_promedio']:.2f}")
         
         elif df_evo.empty:
-            st.warning(f"⚠️ No se encontraron datos históricos para {nombre_jugador}")
-            st.info("Verifica que el jugador tenga registros en la base de datos.")
+            st.warning(t("no_historical_data").format(nombre_jugador))
+            if get_language() == 'es':
+                st.info("Verifica que el jugador tenga registros en la base de datos.")
+            else:
+                st.info("Verify that the player has records in the database.")
         else:
-            st.warning(f"⚠️ No hay suficientes datos históricos para {nombre_jugador}")
-            st.info("Se necesitan al menos 2 temporadas con 300+ minutos jugados para visualizar evolución.")
+            st.warning(t("insufficient_seasons").format(nombre_jugador))
+            st.info(t("need_2_seasons"))
     
     else:
-        st.sidebar.warning("❌ No se encontraron jugadores con esos criterios")
-        st.sidebar.markdown("""
-        **💡 Sugerencias:**
-        - Reduce el umbral de tolerancia (más abajo)
-        - Verifica la ortografía del nombre
-        - Prueba con solo el apellido
-        
-        **Ejemplos que funcionan:**
-        - "Alvares" encuentra "Julián Álvarez"
-        - "Retegui" encuentra todas las temporadas de Retegui
-        """)
+        st.sidebar.warning(f"❌ {t('not_found')}")
+        if get_language() == 'es':
+            st.sidebar.markdown("""
+            **💡 Sugerencias:**
+            - Reduce el umbral de tolerancia
+            - Verifica la ortografía del nombre
+            - Prueba con solo el apellido
+            
+            **Ejemplos que funcionan:**
+            - "Alvares" encuentra "Julián Álvarez"
+            - "Retegui" encuentra todas las temporadas de Retegui
+            """)
+        else:
+            st.sidebar.markdown("""
+            **💡 Suggestions:**
+            - Reduce the tolerance threshold
+            - Check the name spelling
+            - Try with just the last name
+            
+            **Examples that work:**
+            - "Alvares" finds "Julián Álvarez"
+            - "Retegui" finds all Retegui's seasons
+            """)
 
 else:
-    st.info("👈 Comienza buscando un jugador en la barra lateral")
+    st.info(t("start_searching"))
     
-    st.markdown("""
-    ### 🎯 ¿Para qué sirve el análisis de evolución?
-    
-    Esta herramienta te permite:
-    
-    - 📈 Identificar tendencias de mejora o declive
-    - 🔍 Detectar cambios de rol (ej: delantero que ahora juega más atrás)
-    - 🎯 Evaluar consistencia a lo largo del tiempo
-    - 🏆 Encontrar picos de rendimiento históricos
-    - 📊 Comparar diferentes métricas simultáneamente
-    
-    **Casos de uso:**
-    - Validar si un jugador joven está en progresión
-    - Detectar si un veterano está en declive
-    - Identificar jugadores con picos de forma predecibles
-    - Analizar impacto de cambios de equipo o liga
-    
-    **Limitaciones:**
-    - Solo muestra temporadas con 300+ minutos jugados
-    - Cambios pueden deberse al contexto (equipo, lesiones, rol táctico)
-    - Métricas no capturan intangibles (liderazgo, mentalidad)
-    
-    """)
+    # Explicación según idioma
+    if get_language() == 'es':
+        st.markdown("""
+        ### 🎯 ¿Para qué sirve el análisis de evolución?
+        
+        Esta herramienta te permite:
+        
+        - 📈 Identificar tendencias de mejora o declive
+        - 🔍 Detectar cambios de rol (ej: delantero que ahora juega más atrás)
+        - 🎯 Evaluar consistencia a lo largo del tiempo
+        - 🏆 Encontrar picos de rendimiento históricos
+        - 📊 Comparar diferentes métricas simultáneamente
+        
+        **Casos de uso:**
+        - Validar si un jugador joven está en progresión
+        - Detectar si un veterano está en declive
+        - Identificar jugadores con picos de forma predecibles
+        - Analizar impacto de cambios de equipo o liga
+        
+        **Limitaciones:**
+        - Solo muestra temporadas con 300+ minutos jugados
+        - Cambios pueden deberse al contexto (equipo, lesiones, rol táctico)
+        - Métricas no capturan intangibles (liderazgo, mentalidad)
+        """)
+    else:
+        st.markdown("""
+        ### 🎯 What is evolution analysis for?
+        
+        This tool allows you to:
+        
+        - 📈 Identify improvement or decline trends
+        - 🔍 Detect role changes (e.g., striker now playing deeper)
+        - 🎯 Evaluate consistency over time
+        - 🏆 Find historical performance peaks
+        - 📊 Compare different metrics simultaneously
+        
+        **Use cases:**
+        - Validate if a young player is progressing
+        - Detect if a veteran is declining
+        - Identify players with predictable form peaks
+        - Analyze impact of team or league changes
+        
+        **Limitations:**
+        - Only shows seasons with 300+ minutes played
+        - Changes may be due to context (team, injuries, tactical role)
+        - Metrics don't capture intangibles (leadership, mentality)
+        """)
 
-logger.info("Evolucion page rendered")
+logger.info(f"Evolution page rendered (lang: {get_language()})")

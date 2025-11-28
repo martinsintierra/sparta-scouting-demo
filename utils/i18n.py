@@ -1,6 +1,6 @@
 """
-Sistema de InternacionalizaciÃ³n (i18n) para Scouting Pro AI
-Soporta mÃºltiples idiomas con estructura modular
+Sistema de Internacionalización (i18n) para Scouting Pro AI
+Soporta múltiples idiomas con estructura modular
 """
 
 import streamlit as st
@@ -11,59 +11,59 @@ import json
 # Diccionario completo de traducciones
 TRANSLATIONS = {
     "es": {
-        # NavegaciÃ³n
+        # Navegación
         "app_title": "Scouting Pro",
         "page_home": "Inicio",
         "page_search": "Buscar",
         "page_compare": "Comparar",
         "page_pca": "Explorador PCA",
-        "page_evolution": "EvoluciÃ³n",
-        "page_config": "ConfiguraciÃ³n",
+        "page_evolution": "Evolución",
+        "page_config": "Configuración",
         "page_glossary": "Glosario",
         
         # Home
         "home_title": "Recurso de Scouting - Motor Vectorial de Similitud",
-        "home_subtitle": "Sistema de recomendaciÃ³n basado en **K-Nearest Neighbors** con ponderaciÃ³n por posiciÃ³n y decay temporal.",
-        "home_description": "Encuentra jugadores similares usando xG, xA, pases progresivos, recuperaciones y mÃ¡s.",
+        "home_subtitle": "Sistema de recomendación basado en **K-Nearest Neighbors** con ponderación por posición y decay temporal.",
+        "home_description": "Encuentra jugadores similares usando xG, xA, pases progresivos, recuperaciones y más.",
         "home_coverage": "Actualmente cubre Liga Profesional Argentina (2021-2025) y Primera B Nacional (2025)",
-        "system_stats": "EstadÃ­sticas del Sistema",
-        "unique_players": "Jugadores Ãšnicos",
+        "system_stats": "Estadísticas del Sistema",
+        "unique_players": "Jugadores Únicos",
         "similarity_relations": "Relaciones de Similitud",
         "seasons": "Temporadas",
         "get_started": "Comenzar",
-        "main_features": "CaracterÃ­sticas Principales",
-        "model_precision": "PrecisiÃ³n del Modelo",
-        "analyzed_metrics": "MÃ©tricas Analizadas",
+        "main_features": "Características Principales",
+        "model_precision": "Precisión del Modelo",
+        "analyzed_metrics": "Métricas Analizadas",
         "available_tools": "Herramientas Disponibles",
         "performance": "Performance",
         "suggestion": "Sugerencia",
-        "suggestion_text": "EmpezÃ¡ explorando la secciÃ³n Buscar para encontrar jugadores similares a tu perfil ideal.",
-        "more_info": "Para mÃ¡s informaciÃ³n, consultÃ¡ el Glosario en la barra lateral!",
+        "suggestion_text": "Empezá explorando la sección Buscar para encontrar jugadores similares a tu perfil ideal.",
+        "more_info": "Para más información, consultá el Glosario en la barra lateral!",
         
         # Buscar
         "search_title": "Buscar Jugadores Similares",
-        "search_subtitle": "EncontrÃ¡ jugadores con perfiles estadÃ­sticos similares usando bÃºsqueda inteligente.",
-        "search_config": "ConfiguraciÃ³n de BÃºsqueda",
+        "search_subtitle": "Encontrá jugadores con perfiles estadísticos similares usando búsqueda inteligente.",
+        "search_config": "Configuración de Búsqueda",
         "search_player": "Buscar Jugador",
         "search_placeholder": "Ej: Retegui, Borja, Arce",
-        "search_help": "BÃºsqueda inteligente: EscribÃ­ con errores de tipeo, sin tildes o mayÃºsculas. ¡No pasa nada!",
+        "search_help": "Búsqueda inteligente: Escribí con errores de tipeo, sin tildes o mayúsculas. ¡No pasa nada!",
         "origin_season": "Temporada Origen",
-        "min_similarity": "Similitud MÃ­nima %",
+        "min_similarity": "Similitud Mínima %",
         "advanced_options": "Opciones Avanzadas",
-        "fuzzy_tolerance": "Tolerancia de bÃºsqueda (fuzzy)",
-        "fuzzy_help": "Mayor = mÃ¡s estricto. Menor = encuentra mÃ¡s resultados con errores de tipeo",
+        "fuzzy_tolerance": "Tolerancia de búsqueda (fuzzy)",
+        "fuzzy_help": "Mayor = más estricto. Menor = encuentra más resultados con errores de tipeo",
         "results_found": "Encontrados {} resultados",
         "fuzzy_match": "resultados similares (fuzzy match)",
         "exact_match": "resultados exactos",
-        "select_version": "SeleccionÃ¡ versiÃ³n del jugador:",
+        "select_version": "Seleccioná versión del jugador:",
         "mold_profile": "Perfil del Molde",
         "team": "Equipo",
         "season": "Temporada",
-        "position": "PosiciÃ³n",
+        "position": "Posición",
         "rating": "Rating",
         "matches": "Partidos",
         "similar_players": "Jugadores Similares",
-        "similarity_interpretation": "Â¿CÃ³mo interpretar el porcentaje de similitud?",
+        "similarity_interpretation": "¿Cómo interpretar el porcentaje de similitud?",
         "tab_season_2025": "Temporada 2025",
         "tab_season_2024": "Temporada 2024",
         "tab_all_seasons": "Todas las Temporadas",
@@ -74,114 +74,114 @@ TRANSLATIONS = {
         "view_full_table": "Ver tabla completa de resultados",
         "no_results": "No se encontraron jugadores similares con score >= {}%",
         "search_suggestions": "Sugerencias",
-        "reduce_min_similarity": "Reduce el porcentaje mÃ­nimo de similitud",
+        "reduce_min_similarity": "Reduce el porcentaje mínimo de similitud",
         "try_another_season": "Prueba con otra temporada",
-        "verify_position_data": "Verifica que existan datos para esta posiciÃ³n",
-        "start_typing": "ArrancÃ¡ escribiendo el nombre de un jugador en la barra lateral",
-        "how_to_use": "CÃ³mo usar esta herramienta",
+        "verify_position_data": "Verifica que existan datos para esta posición",
+        "start_typing": "Arrancá escribiendo el nombre de un jugador en la barra lateral",
+        "how_to_use": "Cómo usar esta herramienta",
         
         # Comparar
         "compare_title": "Comparar Jugadores",
-        "compare_subtitle": "ComparÃ¡ hasta 4 jugadores lado a lado para identificar fortalezas y debilidades.",
+        "compare_subtitle": "Compará hasta 4 jugadores lado a lado para identificar fortalezas y debilidades.",
         "select_players": "Seleccionar Jugadores",
-        "num_players": "NÃºmero de jugadores a comparar",
-        "num_players_help": "SeleccionÃ¡ cuÃ¡ntos jugadores querÃ©s comparar",
+        "num_players": "Número de jugadores a comparar",
+        "num_players_help": "Seleccioná cuántos jugadores querés comparar",
         "player_num": "Jugador {}",
         "search_player_num": "Buscar jugador {}",
         "season_player_num": "Temporada jugador {}",
-        "select_version_num": "Seleccionar versiÃ³n {}",
+        "select_version_num": "Seleccionar versión {}",
         "comparing_players": "Comparando {} jugadores",
         "comparative_table": "Tabla Comparativa",
         "comparative_radar": "Radar Comparativo (Percentiles)",
-        "strengths_analysis": "AnÃ¡lisis de Fortalezas Relativas",
+        "strengths_analysis": "Análisis de Fortalezas Relativas",
         "top_3_strengths": "Top 3 Fortalezas",
-        "improvement_areas": "Ãreas de Mejora",
-        "automatic_insights": "Insights AutomÃ¡ticos",
+        "improvement_areas": "Áreas de Mejora",
+        "automatic_insights": "Insights Automáticos",
         "best_rating": "Mejor Rating",
-        "top_scorer": "MÃ¡s Goleador",
+        "top_scorer": "Más Goleador",
         "best_xg": "Mejor xG",
-        "search_2_players": "BuscÃ¡ al menos 2 jugadores en la barra lateral para comenzar la comparaciÃ³n",
+        "search_2_players": "Buscá al menos 2 jugadores en la barra lateral para comenzar la comparación",
         
         # PCA
         "pca_title": "Explorador PCA - Mapa de Similitudes",
-        "pca_subtitle": "VisualizÃ¡ jugadores en un espacio bidimensional usando **PCA (Principal Component Analysis)**.",
-        "pca_description": "Jugadores cercanos en el mapa tienen perfiles estadÃ­sticos similares.",
+        "pca_subtitle": "Visualizá jugadores en un espacio bidimensional usando **PCA (Principal Component Analysis)**.",
+        "pca_description": "Jugadores cercanos en el mapa tienen perfiles estadísticos similares.",
         "select_player": "Seleccionar Jugador",
-        "search_help_pca": "BuscÃ¡ el jugador que quieres destacar en el mapa",
-        "season_analysis": "Temporada para AnÃ¡lisis",
-        "search_tolerance": "Tolerancia de bÃºsqueda",
+        "search_help_pca": "Buscá el jugador que quieres destacar en el mapa",
+        "season_analysis": "Temporada para Análisis",
+        "search_tolerance": "Tolerancia de búsqueda",
         "select_player_list": "Selecciona jugador:",
         "calculating_pca": "Calculando PCA...",
         "insufficient_data": "No hay suficientes datos para {} en temporada {}",
-        "what_is_pca": "Â¿QuÃ© es el anÃ¡lisis PCA?",
+        "what_is_pca": "¿Qué es el análisis PCA?",
         "start_searching": "Comienza buscando un jugador en la barra lateral",
         "variance_explained": "Varianza Explicada (PC1+PC2)",
         "players_analyzed": "Jugadores Analizados",
         "very_similar_players": "Jugadores Muy Similares",
-        "view_top_10": "Ver los 10 jugadores mÃ¡s similares (por distancia PCA)",
+        "view_top_10": "Ver los 10 jugadores más similares (por distancia PCA)",
         
-        # EvoluciÃ³n
-        "evolution_title": "EvoluciÃ³n HistÃ³rica de Jugadores",
-        "evolution_subtitle": "Analiza cÃ³mo ha evolucionado el rendimiento de un jugador a travÃ©s de las temporadas.",
+        # Evolución
+        "evolution_title": "Evolución Histórica de Jugadores",
+        "evolution_subtitle": "Analiza cómo ha evolucionado el rendimiento de un jugador a través de las temporadas.",
         "player_name": "Nombre del jugador",
-        "evolution_help": "EscribÃ­ el nombre y verÃ¡s todas sus temporadas disponibles",
+        "evolution_help": "Escribí el nombre y verás todas sus temporadas disponibles",
         "current_club": "Club Actual",
         "current_rating": "Rating Actual",
-        "loading_history": "Cargando datos histÃ³ricos...",
-        "trends_analysis": "AnÃ¡lisis de Tendencias",
-        "rating_evolution": "EvoluciÃ³n del Rating",
-        "xg_evolution": "EvoluciÃ³n xG/90",
+        "loading_history": "Cargando datos históricos...",
+        "trends_analysis": "Análisis de Tendencias",
+        "rating_evolution": "Evolución del Rating",
+        "xg_evolution": "Evolución xG/90",
         "total_matches": "Partidos Totales",
         "vs_first_season": "vs primera temp",
-        "automatic_insights": "Insights AutomÃ¡ticos",
+        "automatic_insights": "Insights Automáticos",
         "improved_significantly": "{} ha mejorado significativamente su rating ({:+.2f} puntos)",
-        "declined_rating": "{} ha experimentado una caÃ­da en su rating ({:+.2f} puntos)",
+        "declined_rating": "{} ha experimentado una caída en su rating ({:+.2f} puntos)",
         "stable_performance": "{} ha mantenido un rendimiento estable a lo largo de las temporadas",
         "best_season": "Mejor temporada",
         "with_rating": "con rating",
-        "no_historical_data": "No se encontraron datos histÃ³ricos para {}",
-        "insufficient_seasons": "No hay suficientes datos histÃ³ricos para {}",
-        "need_2_seasons": "Se necesitan al menos 2 temporadas con 300+ minutos jugados para visualizar evoluciÃ³n.",
+        "no_historical_data": "No se encontraron datos históricos para {}",
+        "insufficient_seasons": "No hay suficientes datos históricos para {}",
+        "need_2_seasons": "Se necesitan al menos 2 temporadas con 300+ minutos jugados para visualizar evolución.",
         
-        # ConfiguraciÃ³n
-        "config_title": "ConfiguraciÃ³n y Mantenimiento",
-        "config_subtitle": "Panel de control para gestionar cachÃ©, logs y configuraciones del sistema.",
-        "cache_tab": "CachÃ©",
+        # Configuración
+        "config_title": "Configuración y Mantenimiento",
+        "config_subtitle": "Panel de control para gestionar caché, logs y configuraciones del sistema.",
+        "cache_tab": "Caché",
         "logs_tab": "Logs",
         "about_tab": "Acerca de",
-        "cache_management": "GestiÃ³n de CachÃ©",
-        "disk_cache": "CachÃ© en Disco",
-        "memory_cache": "CachÃ© en Memoria",
-        "cache_active": "CachÃ© activo",
-        "size": "TamaÃ±o",
-        "age": "AntigÃ¼edad",
+        "cache_management": "Gestión de Caché",
+        "disk_cache": "Caché en Disco",
+        "memory_cache": "Caché en Memoria",
+        "cache_active": "Caché activo",
+        "size": "Tamaño",
+        "age": "Antigüedad",
         "hours": "horas",
-        "clear_disk_cache": "Limpiar CachÃ© en Disco",
-        "clear_memory_cache": "Limpiar CachÃ© de Streamlit",
-        "cache_cleared": "CachÃ© eliminado. Recarga la pÃ¡gina para regenerar.",
-        "when_to_clear": "CuÃ¡ndo limpiar el cachÃ©",
+        "clear_disk_cache": "Limpiar Caché en Disco",
+        "clear_memory_cache": "Limpiar Caché de Streamlit",
+        "cache_cleared": "Caché eliminado. Recarga la página para regenerar.",
+        "when_to_clear": "Cuándo limpiar el caché",
         "system_logs": "Logs del Sistema",
         "log_files_found": "Encontrados {} archivos de log",
         "select_log_file": "Seleccionar archivo de log",
-        "num_lines": "NÃºmero de lÃ­neas a mostrar",
+        "num_lines": "Número de líneas a mostrar",
         "filter_level": "Filtrar por nivel",
         "load_logs": "Cargar Logs",
         "export_logs": "Exportar Logs",
-        "download_today_logs": "Descargar Logs del DÃ­a",
+        "download_today_logs": "Descargar Logs del Día",
         "download": "Descargar",
         
         # Glosario
-        "glossary_title": "Glosario y Contexto TÃ©cnico",
-        "glossary_subtitle": "GuÃ­a de interpretaciÃ³n, conceptos tÃ©cnicos y limitaciones del sistema.",
-        "metrics_glossary": "Glosario de MÃ©tricas",
-        "technical_concepts": "Conceptos TÃ©cnicos",
+        "glossary_title": "Glosario y Contexto Técnico",
+        "glossary_subtitle": "Guía de interpretación, conceptos técnicos y limitaciones del sistema.",
+        "metrics_glossary": "Glosario de Métricas",
+        "technical_concepts": "Conceptos Técnicos",
         "limitations": "Limitaciones y Uso Responsable",
         
-        # MÃ©tricas comunes
+        # Métricas comunes
         "age": "Edad",
         "height": "Altura",
         "foot": "Pie",
-        "country": "PaÃ­s",
+        "country": "País",
         "value": "Valor",
         "contract": "Contrato",
         "goals": "Goles",
@@ -189,16 +189,16 @@ TRANSLATIONS = {
         "progressive_passes": "Prog. Pass",
         "dribbles": "Dribbles",
         "recoveries": "Recuperaciones",
-        "aerial_duels": "AÃ©reos",
+        "aerial_duels": "Aéreos",
         
         # Mensajes comunes
         "loading": "Cargando...",
         "error": "Error",
-        "success": "Ã‰xito",
+        "success": "Á‰xito",
         "warning": "Advertencia",
-        "info": "InformaciÃ³n",
+        "info": "Información",
         "not_found": "No encontrado",
-        "connection_error": "Error de conexiÃ³n",
+        "connection_error": "Error de conexión",
         "no_data": "Sin datos disponibles",
     },
     
@@ -401,24 +401,24 @@ def get_language() -> str:
     Obtiene el idioma actual desde session_state
     
     Returns:
-        CÃ³digo de idioma ('es' o 'en')
+        Código de idioma ('es' o 'en')
     """
     if 'language' not in st.session_state:
-        st.session_state.language = 'es'  # EspaÃ±ol por defecto
+        st.session_state.language = 'es'  # Español por defecto
     return st.session_state.language
 
 
 def set_language(lang_code: str):
     """
-    Establece el idioma de la aplicaciÃ³n
+    Establece el idioma de la aplicación
     
     Args:
-        lang_code: CÃ³digo de idioma ('es' o 'en')
+        lang_code: Código de idioma ('es' o 'en')
     """
     if lang_code in TRANSLATIONS:
         st.session_state.language = lang_code
     else:
-        st.warning(f"Idioma '{lang_code}' no disponible. Usando espaÃ±ol.")
+        st.warning(f"Idioma '{lang_code}' no disponible. Usando español.")
         st.session_state.language = 'es'
 
 
@@ -427,8 +427,8 @@ def t(key: str, **kwargs) -> str:
     Traduce una clave al idioma actual
     
     Args:
-        key: Clave de traducciÃ³n
-        **kwargs: ParÃ¡metros para formateo de strings
+        key: Clave de traducción
+        **kwargs: Parámetros para formateo de strings
     
     Returns:
         String traducido
@@ -466,7 +466,7 @@ def language_selector():
     
     with col1:
         if st.button(
-            "🇪🇸 EspaÃ±ol" if current_lang != 'es' else "✅ EspaÃ±ol",
+            "🇪🇸 Español" if current_lang != 'es' else "✅ Español",
             use_container_width=True,
             type="primary" if current_lang == 'es' else "secondary"
         ):
@@ -482,7 +482,7 @@ def language_selector():
             set_language('en')
             st.rerun()
     
-    st.sidebar.caption(f"Current: {'EspaÃ±ol' if current_lang == 'es' else 'English'}")
+    st.sidebar.caption(f"Current: {'Español' if current_lang == 'es' else 'English'}")
 
 
 def get_available_languages() -> Dict[str, str]:
@@ -490,10 +490,10 @@ def get_available_languages() -> Dict[str, str]:
     Obtiene lista de idiomas disponibles
     
     Returns:
-        Diccionario con cÃ³digos y nombres de idiomas
+        Diccionario con códigos y nombres de idiomas
     """
     return {
-        'es': '🇪🇸 EspaÃ±ol',
+        'es': '🇪🇸 Español',
         'en': '🇬🇧 English'
     }
 

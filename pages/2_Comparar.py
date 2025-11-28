@@ -1,19 +1,21 @@
 import streamlit as st
-import sys
-from pathlib import Path
 import plotly.graph_objects as go
 import pandas as pd
 
 from utils.database import get_all_players_index, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
 from utils.logger import setup_logger
+from utils.i18n import language_selector, t, get_language
 
 logger = setup_logger(__name__)
 
-st.set_page_config(page_title="Comparar Jugadores", layout="wide", page_icon="⚖️")
+st.set_page_config(page_title=t("compare_title"), layout="wide", page_icon="⚖️")
 
-st.title("Comparar Jugadores")
-st.markdown("Compará hasta 4 jugadores lado a lado para identificar fortalezas y debilidades.")
+# Selector de idioma
+language_selector()
+
+st.title(t("compare_title"))
+st.markdown(t("compare_subtitle"))
 
 # Verificar cliente
 if 'client' not in st.session_state:
@@ -23,46 +25,43 @@ if 'client' not in st.session_state:
 client = st.session_state.client
 
 if not client:
-    st.error("❌ Error de conexión con BigQuery")
+    st.error(f"❌ {t('connection_error')} BigQuery")
     st.stop()
 
 # Cargar índice
-with st.spinner("📄 Cargando índice de jugadores..."):
+with st.spinner(f"🔄 {t('loading')}..."):
     df_players_index = get_all_players_index(client)
 
-st.sidebar.success(f"✅ Índice cargado: {len(df_players_index):,} jugadores")
+st.sidebar.success(f"✅ {len(df_players_index):,} {t('unique_players').lower()}")
 
 # Sidebar - Configuración
-st.sidebar.header("Seleccionar Jugadores")
+st.sidebar.header(t("select_players"))
 
 num_jugadores = st.sidebar.radio(
-    "Número de jugadores a comparar",
+    t("num_players"),
     options=[2, 3, 4],
     index=0,
-    help="Seleccioná cuántos jugadores querés comparar"
+    help=t("num_players_help")
 )
 
 st.sidebar.divider()
 
 # Almacenar jugadores seleccionados
-if 'jugadores_comparacion' not in st.session_state:
-    st.session_state.jugadores_comparacion = []
-
 jugadores_seleccionados = []
 
 # Búsqueda de cada jugador
 for i in range(num_jugadores):
-    st.sidebar.markdown(f"### Jugador {i+1}")
+    st.sidebar.markdown(f"### {t('player_num').format(i+1)}")
     
     nombre = st.sidebar.text_input(
-        f"Buscar jugador {i+1}",
-        placeholder="Ej: Retegui, Borja...",
+        t("search_player_num").format(i+1),
+        placeholder="Ej: Retegui, Borja..." if get_language() == 'es' else "e.g., Retegui, Borja...",
         key=f"buscar_{i}"
     )
     
     if nombre:
         temp = st.sidebar.selectbox(
-            f"Temporada jugador {i+1}",
+            t("season_player_num").format(i+1),
             options=[2025, 2024, 2023, 2022, 2021],
             index=0,
             key=f"temp_{i}"
@@ -77,7 +76,7 @@ for i in range(num_jugadores):
             )
             
             seleccion = st.sidebar.selectbox(
-                f"Seleccionar versión {i+1}",
+                t("select_version_num").format(i+1),
                 df_search['label'],
                 key=f"select_{i}"
             )
@@ -105,30 +104,42 @@ for i in range(num_jugadores):
             
             jugadores_seleccionados.append(jugador_data)
         else:
-            st.sidebar.warning(f"❌ No se encontró jugador {i+1}")
+            st.sidebar.warning(f"❌ {t('not_found')} {i+1}")
     
     st.sidebar.divider()
 
 # Mostrar comparación si hay al menos 2 jugadores
 if len(jugadores_seleccionados) >= 2:
-    st.success(f"✅ Comparando {len(jugadores_seleccionados)} jugadores")
+    st.success(t("comparing_players").format(len(jugadores_seleccionados)))
     
     # Tabla comparativa
-    st.markdown("### Tabla Comparativa")
+    st.markdown(f"### {t('comparative_table')}")
     
     # Preparar datos para tabla
     tabla_data = []
     for j in jugadores_seleccionados:
-        tabla_data.append({
-            'Jugador': j['nombre'],
-            'Equipo': j['equipo'],
-            'Posición': j['posicion'],
-            'Temporada': j['temporada'],
-            '⭐ Rating': f"{j['rating']:.2f}",
-            '⚽ Goles/90': f"{j['goals']:.2f}",
-            '🎯 xG/90': f"{j['xG']:.2f}",
-            '🏃 Partidos': j['partidos']
-        })
+        if get_language() == 'es':
+            tabla_data.append({
+                'Jugador': j['nombre'],
+                'Equipo': j['equipo'],
+                'Posición': j['posicion'],
+                'Temporada': j['temporada'],
+                '⭐ Rating': f"{j['rating']:.2f}",
+                '⚽ Goles/90': f"{j['goals']:.2f}",
+                '🎯 xG/90': f"{j['xG']:.2f}",
+                '🏃 Partidos': j['partidos']
+            })
+        else:
+            tabla_data.append({
+                'Player': j['nombre'],
+                'Team': j['equipo'],
+                'Position': j['posicion'],
+                'Season': j['temporada'],
+                '⭐ Rating': f"{j['rating']:.2f}",
+                '⚽ Goals/90': f"{j['goals']:.2f}",
+                '🎯 xG/90': f"{j['xG']:.2f}",
+                '🏃 Matches': j['partidos']
+            })
     
     df_tabla = pd.DataFrame(tabla_data)
     st.dataframe(df_tabla, use_container_width=True, hide_index=True)
@@ -136,9 +147,12 @@ if len(jugadores_seleccionados) >= 2:
     st.divider()
     
     # Radar comparativo
-    st.markdown("### 🎯 Radar Comparativo (Percentiles)")
+    st.markdown(f"### 🎯 {t('comparative_radar')}")
     
-    categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones', 'Aéreos', 'Rating']
+    if get_language() == 'es':
+        categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones', 'Aéreos', 'Rating']
+    else:
+        categories = ['xG', 'xA', 'Prog. Passes', 'Dribbles', 'Recoveries', 'Aerial', 'Rating']
     
     fig = go.Figure()
     
@@ -188,7 +202,7 @@ if len(jugadores_seleccionados) >= 2:
     st.divider()
     
     # Análisis de fortalezas
-    st.markdown("### 💪 Análisis de Fortalezas Relativas")
+    st.markdown(f"### 💪 {t('strengths_analysis')}")
     
     cols = st.columns(len(jugadores_seleccionados))
     
@@ -197,62 +211,102 @@ if len(jugadores_seleccionados) >= 2:
             st.markdown(f"#### {jugador['nombre']}")
             
             p = jugador['percentiles']
-            metricas = {
-                'xG': p.get('pct_xG', 0.5) * 100,
-                'xA': p.get('pct_xA', 0.5) * 100,
-                'Pases Prog.': p.get('pct_prog_passes', 0.5) * 100,
-                'Dribbles': p.get('pct_dribbles', 0.5) * 100,
-                'Recuperaciones': p.get('pct_recoveries', 0.5) * 100,
-                'Aéreos': p.get('pct_aerial', 0.5) * 100
-            }
+            
+            if get_language() == 'es':
+                metricas = {
+                    'xG': p.get('pct_xG', 0.5) * 100,
+                    'xA': p.get('pct_xA', 0.5) * 100,
+                    'Pases Prog.': p.get('pct_prog_passes', 0.5) * 100,
+                    'Dribbles': p.get('pct_dribbles', 0.5) * 100,
+                    'Recuperaciones': p.get('pct_recoveries', 0.5) * 100,
+                    'Aéreos': p.get('pct_aerial', 0.5) * 100
+                }
+            else:
+                metricas = {
+                    'xG': p.get('pct_xG', 0.5) * 100,
+                    'xA': p.get('pct_xA', 0.5) * 100,
+                    'Prog. Passes': p.get('pct_prog_passes', 0.5) * 100,
+                    'Dribbles': p.get('pct_dribbles', 0.5) * 100,
+                    'Recoveries': p.get('pct_recoveries', 0.5) * 100,
+                    'Aerial': p.get('pct_aerial', 0.5) * 100
+                }
             
             # Top 3 fortalezas
             top_3 = sorted(metricas.items(), key=lambda x: x[1], reverse=True)[:3]
             
-            st.success("**Top 3 Fortalezas:**")
+            st.success(f"**{t('top_3_strengths')}:**")
             for metrica, valor in top_3:
-                st.write(f"- {metrica}: Percentil {valor:.0f}")
+                if get_language() == 'es':
+                    st.write(f"- {metrica}: Percentil {valor:.0f}")
+                else:
+                    st.write(f"- {metrica}: Percentile {valor:.0f}")
             
             # Bottom 3 debilidades
             bottom_3 = sorted(metricas.items(), key=lambda x: x[1])[:3]
             
-            st.warning("**Áreas de Mejora:**")
+            st.warning(f"**{t('improvement_areas')}:**")
             for metrica, valor in bottom_3:
-                st.write(f"- {metrica}: Percentil {valor:.0f}")
+                if get_language() == 'es':
+                    st.write(f"- {metrica}: Percentil {valor:.0f}")
+                else:
+                    st.write(f"- {metrica}: Percentile {valor:.0f}")
     
     st.divider()
     
     # Insights automáticos
-    st.markdown("### 💡 Insights Automáticos")
+    st.markdown(f"### 💡 {t('automatic_insights')}")
     
     # Jugador con mejor rating
     mejor_rating = max(jugadores_seleccionados, key=lambda x: x['rating'])
-    st.info(f"🏆 **Mejor Rating:** {mejor_rating['nombre']} con {mejor_rating['rating']:.2f}")
+    st.info(f"🏆 **{t('best_rating')}:** {mejor_rating['nombre']} {t('with_rating')} {mejor_rating['rating']:.2f}")
     
     # Jugador más goleador
     mejor_goleador = max(jugadores_seleccionados, key=lambda x: x['goals'])
-    st.info(f"⚽ **Más Goleador:** {mejor_goleador['nombre']} con {mejor_goleador['goals']:.2f} goles/90")
+    if get_language() == 'es':
+        st.info(f"⚽ **{t('top_scorer')}:** {mejor_goleador['nombre']} con {mejor_goleador['goals']:.2f} goles/90")
+    else:
+        st.info(f"⚽ **{t('top_scorer')}:** {mejor_goleador['nombre']} with {mejor_goleador['goals']:.2f} goals/90")
     
     # Jugador con mejor xG
     mejor_xg = max(jugadores_seleccionados, key=lambda x: x['xG'])
-    st.info(f"🎯 **Mejor xG:** {mejor_xg['nombre']} con {mejor_xg['xG']:.2f} xG/90")
+    if get_language() == 'es':
+        st.info(f"🎯 **{t('best_xg')}:** {mejor_xg['nombre']} con {mejor_xg['xG']:.2f} xG/90")
+    else:
+        st.info(f"🎯 **{t('best_xg')}:** {mejor_xg['nombre']} with {mejor_xg['xG']:.2f} xG/90")
 
 else:
-    st.info("👈 Buscá al menos 2 jugadores en la barra lateral para comenzar la comparación")
+    st.info(t("search_2_players"))
     
-    st.markdown("""
-    ### 💡 Cómo usar esta herramienta
-    
-    1. **Seleccioná** el número de jugadores a comparar (2-4)
-    2. **Buscá** cada jugador usando la barra lateral
-    3. **Elegí** la temporada específica de cada uno
-    4. **Analizá** la tabla comparativa y el radar
-    
-    **Casos de uso:**
-    - Comparar candidatos para un mismo puesto
-    - Evaluar evolución del mismo jugador en diferentes temporadas
-    - Analizar diferentes perfiles para una posición
-    - Identificar fortalezas complementarias en un plantel
-    """)
+    # Casos de uso según idioma
+    if get_language() == 'es':
+        st.markdown("""
+        ### 💡 Cómo usar esta herramienta
+        
+        1. **Seleccioná** el número de jugadores a comparar (2-4)
+        2. **Buscá** cada jugador usando la barra lateral
+        3. **Elegí** la temporada específica de cada uno
+        4. **Analizá** la tabla comparativa y el radar
+        
+        **Casos de uso:**
+        - Comparar candidatos para un mismo puesto
+        - Evaluar evolución del mismo jugador en diferentes temporadas
+        - Analizar diferentes perfiles para una posición
+        - Identificar fortalezas complementarias en un plantel
+        """)
+    else:
+        st.markdown("""
+        ### 💡 How to use this tool
+        
+        1. **Select** the number of players to compare (2-4)
+        2. **Search** for each player using the sidebar
+        3. **Choose** the specific season for each one
+        4. **Analyze** the comparative table and radar
+        
+        **Use cases:**
+        - Compare candidates for the same position
+        - Evaluate same player's evolution across seasons
+        - Analyze different profiles for a position
+        - Identify complementary strengths in a squad
+        """)
 
-logger.info("Comparar page rendered successfully")
+logger.info(f"Comparar page rendered (lang: {get_language()})")

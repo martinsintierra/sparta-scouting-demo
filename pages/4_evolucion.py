@@ -34,7 +34,7 @@ st.sidebar.header("🔍 Buscar Jugador")
 
 nombre_buscar = st.sidebar.text_input(
     "Nombre del jugador", 
-    placeholder="Ej: Messi, Valentin Gomez, Retegui...",
+    placeholder="Ej: Valentin Gomez, Retegui...",
     help="Escribe el nombre y verás todas sus temporadas disponibles"
 )
 

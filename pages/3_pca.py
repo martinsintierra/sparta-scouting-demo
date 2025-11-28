@@ -14,7 +14,7 @@ st.set_page_config(page_title="Explorador PCA", layout="wide", page_icon="🗺�
 
 st.title("🗺️ Explorador PCA - Mapa de Similitudes")
 st.markdown("""
-Visualiza jugadores en un espacio bidimensional usando **PCA (Principal Component Analysis)**.  
+Visualizá jugadores en un espacio bidimensional usando **PCA (Principal Component Analysis)**.  
 Jugadores cercanos en el mapa tienen perfiles estadísticos similares.
 """)
 
@@ -39,7 +39,7 @@ st.sidebar.header("🔍 Seleccionar Jugador")
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
     placeholder="Ej: Valentin Gomez, Lucas Castro...",
-    help="Busca el jugador que quieres destacar en el mapa"
+    help="Buscá el jugador que quieres destacar en el mapa"
 )
 
 temporada_pca = st.sidebar.selectbox(

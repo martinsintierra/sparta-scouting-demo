@@ -168,6 +168,7 @@ with tab_about:
     │   ├── 3_Explorador_PCA.py # Mapas de similitud
     │   ├── 4_Evolucion.py     # Análisis temporal
     │   └── 5_Configuracion.py # Este panel
+    │   └── 6_Glosario.py # Leer Leer Leer
     └── utils/
         ├── database.py            # Queries a BigQuery
         ├── search.py              # Búsqueda fuzzy
@@ -241,11 +242,11 @@ with tab_about:
     
     ### 🐛 Reportar Problemas
     
-    Si encuentras errores:
+    Que hacer ante errores:
     1. Revisa los logs en la pestaña "📋 Logs"
     2. Intenta limpiar el caché
-    3. Recarga la página
-    4. Contacta al equipo de desarrollo con el log del error
+    3. Recargar la página
+    4. Contactame con el log porfa
     """)
     
     st.divider()

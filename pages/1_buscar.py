@@ -16,8 +16,8 @@ logger = setup_logger(__name__)
 # Configuración
 st.set_page_config(page_title="Buscar Jugadores", layout="wide", page_icon="🔍")
 
-st.title("🔍 Buscar Jugadores Similares")
-st.markdown("Encuentra jugadores con perfiles estadísticos similares usando búsqueda inteligente.")
+st.title("Buscar Jugadores Similares")
+st.markdown("Encontrá jugadores con perfiles estadísticos similares usando búsqueda inteligente.")
 
 # Verificar cliente
 if 'client' not in st.session_state:
@@ -31,18 +31,18 @@ if not client:
     st.stop()
 
 # Cargar índice de jugadores (solo primera vez)
-with st.spinner("📄 Cargando índice de jugadores..."):
+with st.spinner("Cargando índice de jugadores..."):
     df_players_index = get_all_players_index(client)
 
 st.sidebar.success(f"✅ Índice cargado: {len(df_players_index):,} jugadores")
 
 # Sidebar - Búsqueda y filtros
-st.sidebar.header("🔍 Configuración de Búsqueda")
+st.sidebar.header("Configuración de Búsqueda")
 
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
     placeholder="Ej: Retegui, Borja, Arce",
-    help="💡 **Búsqueda inteligente:** Escribe con errores de tipeo, sin tildes o mayúsculas. ¡Funciona igual!"
+    help="💡 **Búsqueda inteligente:** Escribí con errores de tipeo, sin tildes o mayúsculas. ¡No hay drama!"
 )
 
 col_filtro1, col_filtro2 = st.sidebar.columns(2)
@@ -65,7 +65,7 @@ with col_filtro2:
 st.sidebar.divider()
 
 # Opciones avanzadas
-with st.sidebar.expander("⚙️ Opciones Avanzadas"):
+with st.sidebar.expander("Opciones Avanzadas"):
     umbral_fuzzy = st.slider(
         "Tolerancia de búsqueda (fuzzy)",
         min_value=50,
@@ -88,9 +88,9 @@ if nombre_buscar:
         if not df_search.empty:
             # Indicador de tipo de match
             if 'relevancia' in df_search.columns and df_search['relevancia'].iloc[0] < 100:
-                st.sidebar.success(f"🎯 Encontrados {len(df_search)} resultados similares (fuzzy match)")
+                st.sidebar.success(f"Encontrados {len(df_search)} resultados similares (fuzzy match)")
             else:
-                st.sidebar.success(f"✅ Encontrados {len(df_search)} resultados exactos")
+                st.sidebar.success(f"Encontrados {len(df_search)} resultados exactos")
             
             # Formatear labels
             df_search['label'] = df_search.apply(
@@ -99,7 +99,7 @@ if nombre_buscar:
             )
             
             seleccion_label = st.sidebar.selectbox(
-                "📋 Selecciona versión del jugador:", 
+                "Seleccioná versión del jugador:", 
                 df_search['label']
             )
             
@@ -137,7 +137,7 @@ if nombre_buscar:
             
             # Tabs de resultados
             st.divider()
-            st.subheader("🔎 Jugadores Similares")
+            st.subheader("Jugadores Similares")
             
             tab_2025, tab_2024, tab_todas = st.tabs([
                 "🆕 Temporada 2025", 
@@ -150,7 +150,7 @@ if nombre_buscar:
                 df_results = obtener_similares(id_origen, temp_origen, temp_destino, min_score, client)
                 
                 if not df_results.empty:
-                    st.success(f"✅ Encontrados {len(df_results)} jugadores similares")
+                    st.success(f"Encontrados {len(df_results)} jugadores similares")
                     
                     # Selector
                     jugadores_lista = [
@@ -207,12 +207,10 @@ if nombre_buscar:
             st.sidebar.warning("❌ No se encontraron jugadores con esos criterios")
             st.sidebar.info(f"""
             **💡 Tips de búsqueda:**
-            - Intenta con menos letras (ej: "Mes" en vez de "Messi")
             - Reduce la tolerancia fuzzy (⚙️ Opciones Avanzadas)
             - Cambia la temporada de origen
             
             **Ejemplos que funcionan:**
-            - "Mesii" → encuentra "Messi"
             - "Alvares" → encuentra "Álvarez"  
             """)
     
@@ -221,15 +219,15 @@ if nombre_buscar:
         st.error(f"⚠️ Error en la consulta: {e}")
 
 else:
-    st.info("👈 Comienza escribiendo el nombre de un jugador en la barra lateral")
+    st.info("Arrancá escribiendo el nombre de un jugador en la barra lateral")
     
     st.markdown("""
     ### 💡 Cómo usar esta herramienta
     
-    1. **Escribe** el nombre del jugador en la barra lateral
-    2. **Selecciona** la temporada y nivel de similitud deseado
-    3. **Explora** los resultados en las diferentes tabs
-    4. **Analiza** los perfiles detallados con radares y métricas
+    1. **Escribí** el nombre del jugador en la barra lateral
+    2. **Seleccioná** la temporada y nivel de similitud deseado
+    3. **Explorá** los resultados en las diferentes tabs
+    4. **Analizá** los perfiles detallados con radares y métricas
     
     La búsqueda es inteligente y tolerante a errores de tipeo.
     """)

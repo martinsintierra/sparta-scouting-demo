@@ -26,16 +26,16 @@ if not client:
     st.stop()
 
 # Cargar índice COMPLETO (todas las temporadas)
-with st.spinner("🔄 Cargando índice de jugadores..."):
+with st.spinner("Cargando índice de jugadores..."):
     df_players_index = get_all_players_index(client)
 
 # Sidebar - Búsqueda SIN filtro de temporada
-st.sidebar.header("🔍 Buscar Jugador")
+st.sidebar.header("Buscar Jugador")
 
 nombre_buscar = st.sidebar.text_input(
     "Nombre del jugador", 
     placeholder="Ej: Valentin Gomez, Retegui...",
-    help="Escribe el nombre y verás todas sus temporadas disponibles"
+    help="Escribí el nombre y verás todas sus temporadas disponibles"
 )
 
 umbral_fuzzy = st.sidebar.slider(
@@ -202,7 +202,6 @@ if nombre_buscar:
         - Prueba con solo el apellido
         
         **Ejemplos que funcionan:**
-        - "Messi" encuentra "Lionel Messi"
         - "Alvares" encuentra "Julián Álvarez"
         - "Retegui" encuentra todas las temporadas de Retegui
         """)
@@ -232,7 +231,6 @@ else:
     - Cambios pueden deberse al contexto (equipo, lesiones, rol táctico)
     - Métricas no capturan intangibles (liderazgo, mentalidad)
     
-    **Consejo:** Usa esta herramienta junto con la búsqueda de similares para identificar jugadores en ascenso que podrían ser buenas oportunidades de mercado.
     """)
 
 logger.info("Evolucion page rendered")

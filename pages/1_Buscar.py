@@ -1,19 +1,20 @@
 import streamlit as st
-import sys
-from pathlib import Path
-
 from utils.database import get_all_players_index, obtener_similares, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
 from utils.visualization import mostrar_tarjeta_jugador_comparativa
 from utils.logger import setup_logger, log_user_action
+from utils.i18n import language_selector, t, get_language
 
 logger = setup_logger(__name__)
 
 # Configuración
-st.set_page_config(page_title="Buscar Jugadores", layout="wide", page_icon="🔍")
+st.set_page_config(page_title=t("page_search"), layout="wide", page_icon="🔍")
 
-st.title("Buscar Jugadores Similares")
-st.markdown("Encontrá jugadores con perfiles estadísticos similares usando búsqueda inteligente.")
+# Selector de idioma
+language_selector()
+
+st.title(t("search_title"))
+st.markdown(t("search_subtitle"))
 
 # Verificar cliente
 if 'client' not in st.session_state:
@@ -23,35 +24,35 @@ if 'client' not in st.session_state:
 client = st.session_state.client
 
 if not client:
-    st.error("❌ Error de conexión con BigQuery")
+    st.error(f"❌ {t('connection_error')} BigQuery")
     st.stop()
 
 # Cargar índice de jugadores (solo primera vez)
-with st.spinner("🔄 Cargando índice de jugadores..."):
+with st.spinner(f"🔄 {t('loading')}..."):
     df_players_index = get_all_players_index(client)
 
-st.sidebar.success(f"✅ Índice cargado: {len(df_players_index):,} jugadores")
+st.sidebar.success(f"✅ {t('index_loaded', num=len(df_players_index))}")
 
 # Sidebar - Búsqueda y filtros
-st.sidebar.header("🔍 Configuración de Búsqueda")
+st.sidebar.header(f"🔍 {t('search_config')}")
 
 nombre_buscar = st.sidebar.text_input(
-    "Buscar Jugador", 
-    placeholder="Ej: Retegui, Borja, Arce",
-    help="💡 **Búsqueda inteligente:** Escribí con errores de tipeo, sin tildes o mayúsculas. !No pasa nada!"
+    t("search_player"), 
+    placeholder=t("search_placeholder"),
+    help=t("search_help")
 )
 
 col_filtro1, col_filtro2 = st.sidebar.columns(2)
 with col_filtro1:
     temp_origen_filter = st.selectbox(
-        "Temporada Origen",
+        t("origin_season"),
         options=[2025, 2024, 2023, 2022, 2021],
         index=0
     )
 
 with col_filtro2:
     min_score = st.slider(
-        "Similitud Mínima %",
+        t("min_similarity"),
         min_value=0,
         max_value=100,
         value=30,
@@ -61,14 +62,14 @@ with col_filtro2:
 st.sidebar.divider()
 
 # Opciones avanzadas
-with st.sidebar.expander("⚙️ Opciones Avanzadas"):
+with st.sidebar.expander(f"⚙️ {t('advanced_options')}"):
     umbral_fuzzy = st.slider(
-        "Tolerancia de búsqueda (fuzzy)",
+        t("fuzzy_tolerance"),
         min_value=50,
         max_value=100,
         value=70,
         step=5,
-        help="Mayor = más estricto. Menor = encuentra más resultados con errores de tipeo"
+        help=t("fuzzy_help")
     )
 
 # Búsqueda de jugadores
@@ -84,9 +85,9 @@ if nombre_buscar:
         if not df_search.empty:
             # Indicador de tipo de match
             if 'relevancia' in df_search.columns and df_search['relevancia'].iloc[0] < 100:
-                st.sidebar.success(f"Encontrados {len(df_search)} resultados similares (fuzzy match)")
+                st.sidebar.success(t("results_found").format(len(df_search)) + f" ({t('fuzzy_match')})")
             else:
-                st.sidebar.success(f"Encontrados {len(df_search)} resultados exactos")
+                st.sidebar.success(t("results_found").format(len(df_search)) + f" ({t('exact_match')})")
             
             # Formatear labels
             df_search['label'] = df_search.apply(
@@ -95,7 +96,7 @@ if nombre_buscar:
             )
             
             seleccion_label = st.sidebar.selectbox(
-                "Seleccioná versión del jugador:", 
+                t("select_version"), 
                 df_search['label']
             )
             
@@ -107,7 +108,8 @@ if nombre_buscar:
             log_user_action(logger, "jugador_seleccionado", {
                 "player_id": id_origen,
                 "nombre": row_origen['player'],
-                "temporada": temp_origen
+                "temporada": temp_origen,
+                "language": get_language()
             })
             
             percentiles_molde = obtener_percentiles_molde(
@@ -115,110 +117,74 @@ if nombre_buscar:
                 temporada=temp_origen,
                 _client=client
             )
-            # Agregar percentiles al row_origen para que la tarjeta comparativa los use
+            
             row_origen_enriquecido = row_origen.copy()
             for key, value in percentiles_molde.items():
                 row_origen_enriquecido[key] = value
 
-            # Perfil EXPANDIDO del jugador seleccionado
+            # Perfil del jugador seleccionado
             st.divider()
-            st.subheader(f"🎯 Perfil del Molde: {row_origen['player']}")
+            st.subheader(f"🎯 {t('mold_profile')}: {row_origen['player']}")
             
-            # Métricas principales (6 columnas)
+            # Métricas principales
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             
             with col1:
-                st.metric("⚽ Equipo", f"{row_origen['equipo_principal']}")
+                st.metric(f"⚽ {t('team')}", f"{row_origen['equipo_principal']}")
             with col2:
-                st.metric("📅 Temporada", f"{temp_origen}")
+                st.metric(f"📅 {t('season')}", f"{temp_origen}")
             with col3:
-                st.metric("📊 Posición", f"{row_origen['posicion']}")
+                st.metric(f"📊 {t('position')}", f"{row_origen['posicion']}")
             with col4:
-                st.metric("⭐ Rating", f"{row_origen['rating_promedio']:.2f}")
+                st.metric(f"⭐ {t('rating')}", f"{row_origen['rating_promedio']:.2f}")
             with col5:
                 st.metric("🎯 xG/90", f"{row_origen['xG_p90']:.2f}")
             with col6:
-                st.metric("🏃 Partidos", f"{row_origen['partidos_jugados']}")
+                st.metric(f"🏃 {t('matches')}", f"{row_origen['partidos_jugados']}")
             
-            # NUEVO: Stats expandidas del molde
-            with st.expander("📊 Ver estadísticas completas del molde", expanded=False):
-                col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
-                
-                with col_stat1:
-                    st.metric("⚽ Goles/90", f"{row_origen.get('goals_p90', 0):.2f}")
-                with col_stat2:
-                    st.metric("🅰️ Asist/90", f"{row_origen.get('assists_p90', 0):.2f}")
-                with col_stat3:
-                    st.metric("📤 xA/90", f"{row_origen.get('xA_p90', 0):.2f}")
-                with col_stat4:
-                    st.metric("⬆️ Prog.Pass/90", f"{row_origen.get('prog_passes_p90', 0):.2f}")
-                with col_stat5:
-                    st.metric("🏃 Dribbles/90", f"{row_origen.get('dribbles_p90', 0):.2f}")
-                with col_stat6:
-                    st.metric("🔄 Recoveries/90", f"{row_origen.get('recoveries_p90', 0):.2f}")
-            
-            st.info(f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**")
+            # Info de búsqueda
+            lang = get_language()
+            if lang == 'es':
+                st.info(f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**")
+            else:
+                st.info(f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**")
             
             # Tabs de resultados
             st.divider()
-            st.subheader("🔎 Jugadores Similares")
-            
-            # NUEVO: Info sobre el score
-            with st.expander("ℹ️ ¿Cómo interpretar el porcentaje de similitud?"):
-                st.markdown("""
-                El **score de similitud** mide qué tan parecidos son dos perfiles estadísticos en una escala de 0-100%:
-                
-                | Rango | Interpretación | Qué significa |
-                |-------|----------------|---------------|
-                | **50-100%** | Muy similar | Perfiles casi idénticos. Jugadores intercambiables estadísticamente. |
-                | **40-49%** | Similar | Buen match. Comparten características principales pero con algunas diferencias. |
-                | **30-39%** | Moderadamente similar | Match aceptable. Tienen puntos en común pero también diferencias notables. |
-                | **20-29%** | Poco similar | Match débil. Solo comparten algunas características generales. |
-                | **<20%** | Muy diferente | Perfiles distintos. Probablemente no sean buenas alternativas. |
-                
-                **Notas importantes:**
-                - Scores >50% son raros porque implican perfiles casi idénticos
-                - Un score de 40-45% ya es un match muy bueno en la práctica
-                - El contexto importa: un 35% en delanteros puede ser mejor que un 45% en defensores
-                - Scores bajos no significan que el jugador sea malo, solo que es diferente al molde
-                
-                **Tip:** Si no encontrás matches >40%, considera buscar jugadores de otras posiciones o ajustar el molde.
-                """)
+            st.subheader(f"🔎 {t('similar_players')}")
             
             tab_2025, tab_2024, tab_todas = st.tabs([
-                "🆕 Temporada 2025", 
-                "📅 Temporada 2024", 
-                "📊 Todas las Temporadas"
+                f"🆕 {t('tab_season_2025')}", 
+                f"📅 {t('tab_season_2024')}", 
+                f"📊 {t('tab_all_seasons')}"
             ])
-
-
             
             # Función auxiliar para mostrar resultados
             def mostrar_tab_temporada(temp_destino, key_suffix):
                 df_results = obtener_similares(id_origen, temp_origen, temp_destino, min_score, client)
                 
                 if not df_results.empty:
-                    st.success(f"✅ Encontrados {len(df_results)} jugadores similares")
+                    st.success(f"✅ {t('results_found').format(len(df_results))}")
                     
-                    # Mostrar distribución de scores
+                    # Distribución de scores
                     max_score = df_results['score_similitud'].max()
                     avg_score = df_results['score_similitud'].mean()
                     
                     col_info1, col_info2, col_info3 = st.columns(3)
                     with col_info1:
-                        st.metric("🎯 Mejor Match", f"{max_score:.1f}%")
+                        st.metric(f"🎯 {t('best_match')}", f"{max_score:.1f}%")
                     with col_info2:
-                        st.metric("📊 Promedio", f"{avg_score:.1f}%")
+                        st.metric(f"📊 {t('average')}", f"{avg_score:.1f}%")
                     with col_info3:
                         if max_score >= 45:
-                            calidad = "Excelente"
+                            calidad = "Excellent" if get_language() == 'en' else "Excelente"
                         elif max_score >= 35:
-                            calidad = "Bueno"
+                            calidad = "Good" if get_language() == 'en' else "Bueno"
                         elif max_score >= 25:
-                            calidad = "Aceptable"
+                            calidad = "Acceptable" if get_language() == 'en' else "Aceptable"
                         else:
-                            calidad = "Bajo"
-                        st.metric("✅ Calidad", calidad)
+                            calidad = "Low" if get_language() == 'en' else "Bajo"
+                        st.metric(f"✅ {t('quality')}", calidad)
                     
                     # Selector
                     jugadores_lista = [
@@ -227,7 +193,7 @@ if nombre_buscar:
                     ]
                     
                     jugador_seleccionado = st.selectbox(
-                        "Ver detalles de:",
+                        t("view_details"),
                         jugadores_lista,
                         key=f"select_{key_suffix}"
                     )
@@ -235,7 +201,7 @@ if nombre_buscar:
                     idx = jugadores_lista.index(jugador_seleccionado)
                     jugador_detalle = df_results.iloc[idx]
                     
-                    # NUEVO: Mostrar tarjeta COMPARATIVA con el molde
+                    # Mostrar tarjeta COMPARATIVA
                     mostrar_tarjeta_jugador_comparativa(
                         jugador_detalle=jugador_detalle,
                         molde=row_origen_enriquecido,
@@ -243,7 +209,7 @@ if nombre_buscar:
                     )
                     
                     # Tabla resumen
-                    with st.expander("📋 Ver tabla completa de resultados"):
+                    with st.expander(f"📋 {t('view_full_table')}"):
                         df_display = df_results[[
                             'destino_nombre', 'destino_equipo', 'posicion', 
                             'temporada_similar', 'score_similitud', 'destino_edad',
@@ -251,19 +217,26 @@ if nombre_buscar:
                             'destino_partidos', 'destino_minutos'
                         ]].copy()
                         
-                        df_display.columns = [
-                            'Jugador', 'Equipo', 'Pos', 'Temp', 'Match%', 'Edad',
-                            'Rating', 'xG/90', 'xA/90', 'PJ', 'Minutos'
-                        ]
+                        # Traducir headers
+                        if get_language() == 'en':
+                            df_display.columns = [
+                                'Player', 'Team', 'Pos', 'Season', 'Match%', 'Age',
+                                'Rating', 'xG/90', 'xA/90', 'MP', 'Minutes'
+                            ]
+                        else:
+                            df_display.columns = [
+                                'Jugador', 'Equipo', 'Pos', 'Temp', 'Match%', 'Edad',
+                                'Rating', 'xG/90', 'xA/90', 'PJ', 'Minutos'
+                            ]
                         
                         st.dataframe(df_display, use_container_width=True, hide_index=True)
                 else:
-                    st.warning(f"⚠️ No se encontraron jugadores similares con score >= {min_score}%")
-                    st.markdown("""
-                    **Sugerencias:**
-                    - Reduce el porcentaje mínimo de similitud
-                    - Prueba con otra temporada
-                    - Verifica que existan datos para esta posición
+                    st.warning(t("no_results").format(min_score))
+                    st.markdown(f"""
+                    **{t('search_suggestions')}:**
+                    - {t('reduce_min_similarity')}
+                    - {t('try_another_season')}
+                    - {t('verify_position_data')}
                     """)
             
             with tab_2025:
@@ -276,33 +249,37 @@ if nombre_buscar:
                 mostrar_tab_temporada(None, "todas")
         
         else:
-            st.sidebar.warning("❌ No se encontraron jugadores con esos criterios")
-            st.sidebar.info(f"""
-            **💡 Tips de búsqueda:**
-            - Intentá con menos letras (ej: "Mes" en vez de "Messi")
-            - Reduce la tolerancia fuzzy (⚙️ Opciones Avanzadas)
-            - Cambiá la temporada de origen
-            
-            **Ejemplos que funcionan:**
-            - "Alvares" → encuentra "Álvarez"  
-            """)
+            st.sidebar.warning(f"❌ {t('not_found')}")
     
     except Exception as e:
         logger.error(f"Error en búsqueda: {e}", exc_info=True)
-        st.error(f"⚠️ Error en la consulta: {e}")
+        st.error(f"⚠️ {t('error')}: {e}")
 
 else:
-    st.info("Arrancá escribiendo el nombre de un jugador en la barra lateral")
+    st.info(t("start_typing"))
     
-    st.markdown("""
-    ### 💡 Cómo usar esta herramienta
-    
-    1. **Escribí** el nombre del jugador en la barra lateral
-    2. **Seleccioná** la temporada y nivel de similitud deseado
-    3. **Explorá** los resultados en las diferentes tabs
-    4. **Analizá** los perfiles detallados con radares y métricas
-    
-    La búsqueda es inteligente y tolerante a errores de tipeo.
-    """)
+    # Instrucciones según idioma
+    if get_language() == 'es':
+        st.markdown("""
+        ### 💡 Cómo usar esta herramienta
+        
+        1. **Escribí** el nombre del jugador en la barra lateral
+        2. **Seleccioná** la temporada y nivel de similitud deseado
+        3. **Explorá** los resultados en las diferentes tabs
+        4. **Analizá** los perfiles detallados con radares y métricas
+        
+        La búsqueda es inteligente y tolerante a errores de tipeo.
+        """)
+    else:
+        st.markdown("""
+        ### 💡 How to use this tool
+        
+        1. **Type** the player's name in the sidebar
+        2. **Select** the season and desired similarity level
+        3. **Explore** the results in different tabs
+        4. **Analyze** detailed profiles with radars and metrics
+        
+        The search is smart and typo-tolerant.
+        """)
 
-logger.info("Buscar page rendered successfully")
+logger.info(f"Buscar page rendered (lang: {get_language()})")

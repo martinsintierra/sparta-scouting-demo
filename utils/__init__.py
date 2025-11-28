@@ -1,5 +1,5 @@
 """
-Scouting Pro AI - Utilities Module
+Scouting - Utilities Module
 ===================================
 
 Módulo centralizado con toda la lógica de negocio separada de la UI.
@@ -9,18 +9,20 @@ Módulos disponibles:
 - search: Búsqueda fuzzy y normalización de texto
 - visualization: Componentes visuales (tarjetas, radares, mapas PCA)
 - logger: Sistema de logging estructurado
+- i18n: Sistema de internacionalización (ES/EN)
 
 Uso:
     from utils.database import get_bigquery_client, obtener_similares
     from utils.search import buscar_jugadores_fuzzy
     from utils.visualization import mostrar_tarjeta_jugador
     from utils.logger import setup_logger
+    from utils.i18n import language_selector, t, get_language
 
 Autor: martinsintierra
-Versión: 2.0.0
+Versión: 2.1.0
 """
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 __author__ = "martinsintierra"
 
 # Imports principales para facilitar uso
@@ -43,6 +45,15 @@ from .visualization import (
     mostrar_tarjeta_jugador_comparativa,
     mostrar_timeline_evolucion,
     mostrar_mapa_pca
+)
+from .i18n import (
+    language_selector,
+    t,
+    get_language,
+    set_language,
+    get_available_languages,
+    translate_position,
+    translate_month
 )
 
 __all__ = [
@@ -70,4 +81,13 @@ __all__ = [
     'mostrar_tarjeta_jugador_comparativa',
     'mostrar_timeline_evolucion',
     'mostrar_mapa_pca',
+    
+    # i18n
+    'language_selector',
+    't',
+    'get_language',
+    'set_language',
+    'get_available_languages',
+    'translate_position',
+    'translate_month',
 ]

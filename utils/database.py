@@ -352,10 +352,6 @@ def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.
     return df.iloc[0].to_dict()
 
 
-# Agregar al final del archivo, antes del return de get_system_stats
-
-
-
 def get_system_stats(_client: bigquery.Client) -> dict:
     """
     Obtiene estadísticas generales del sistema

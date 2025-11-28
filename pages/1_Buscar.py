@@ -111,14 +111,14 @@ if nombre_buscar:
             })
             
             percentiles_molde = obtener_percentiles_molde(
-            player_id=int(id_origen),
-            temporada=temp_origen,
-            _client=client
-        )
+                player_id=int(id_origen),
+                temporada=temp_origen,
+                _client=client
+            )
             # Agregar percentiles al row_origen para que la tarjeta comparativa los use
             row_origen_enriquecido = row_origen.copy()
             for key, value in percentiles_molde.items():
-            row_origen_enriquecido[key] = value
+                row_origen_enriquecido[key] = value
 
             # Perfil EXPANDIDO del jugador seleccionado
             st.divider()

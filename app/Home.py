@@ -105,7 +105,7 @@ with col_nav1:
     - Filtros por temporada y similitud
     - Resultados detallados con radar charts
     
-    [Ir a Buscar →](Buscar)
+    [Ir a Buscar →](1_buscar)
     """)
 
 with col_nav2:

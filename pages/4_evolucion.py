@@ -27,7 +27,7 @@ if not client:
     st.stop()
 
 # Cargar índice
-with st.spinner("📄 Cargando índice de jugadores..."):
+with st.spinner("🔄 Cargando índice de jugadores..."):
     df_players_index = get_all_players_index(client)
 
 # Sidebar - Búsqueda
@@ -35,16 +35,18 @@ st.sidebar.header("🔍 Buscar Jugador")
 
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
-    placeholder="Ej: Messi, Lewandowski...",
+    placeholder="Ej: Ronaldo Martinez, Johan Carbonero...",
     help="Busca cualquier jugador para ver su evolución"
 )
 
-# Buscar en todas las temporadas (usamos la más reciente como filtro inicial)
+st.sidebar.info("💡 **Nota:** Se mostrarán todas las temporadas disponibles del jugador, independientemente del filtro inicial.")
+
+# Usamos temporada más reciente para búsqueda inicial (pero luego mostramos todas)
 temp_inicial = st.sidebar.selectbox(
-    "Temporada de referencia",
+    "Buscar en temporada",
     options=[2025, 2024, 2023, 2022, 2021],
-    index=1,
-    help="Busca al jugador en esta temporada primero"
+    index=0,
+    help="Busca al jugador primero en esta temporada. Luego se mostrarán TODAS sus temporadas."
 )
 
 umbral_fuzzy = st.sidebar.slider(
@@ -158,12 +160,27 @@ if nombre_buscar:
             mejor_temp = df_evo.loc[df_evo['rating_promedio'].idxmax()]
             st.success(f"🏆 **Mejor temporada:** {int(mejor_temp['temporada_anio'])} con rating {mejor_temp['rating_promedio']:.2f}")
         
+        elif df_evo.empty:
+            st.warning(f"⚠️ No se encontraron datos históricos para {nombre_jugador}")
+            st.info("Verifica que el jugador tenga registros en la base de datos.")
         else:
             st.warning(f"⚠️ No hay suficientes datos históricos para {nombre_jugador}")
-            st.info("Se necesitan al menos 2 temporadas con 300+ minutos jugados")
+            st.info("Se necesitan al menos 2 temporadas con 300+ minutos jugados para visualizar evolución.")
     
     else:
         st.sidebar.warning("❌ No se encontraron jugadores con esos criterios")
+        st.sidebar.markdown(f"""
+        **💡 Sugerencias:**
+        - Intenta con otra temporada de búsqueda
+        - Reduce el umbral de tolerancia (⚙️ más abajo)
+        - Verifica la ortografía del nombre
+        - Prueba con solo el apellido
+        
+        **Ejemplos que funcionan:**
+        - "Messi" ➜ encuentra "Lionel Messi"
+        - "Alvares" ➜ encuentra "Julián Álvarez"
+        - "CR7" ➜ prueba con "Cristiano" o "Ronaldo"
+        """)
 
 else:
     st.info("👈 Comienza buscando un jugador en la barra lateral")
@@ -189,4 +206,8 @@ else:
     - Solo muestra temporadas con 300+ minutos jugados
     - Cambios pueden deberse al contexto (equipo, lesiones, rol táctico)
     - Métricas no capturan intangibles (liderazgo, mentalidad)
+    
+    ---
+    
+    **💡 Consejo:** Usa esta herramienta junto con la búsqueda de similares para identificar jugadores en ascenso que podrían ser buenas oportunidades de mercado.
     """)

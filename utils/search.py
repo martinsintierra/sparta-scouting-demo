@@ -76,14 +76,32 @@ def buscar_jugadores_fuzzy(
     
     nombres_normalizados = df_temp['player_normalizado'].tolist()
     
-    matches = process.extract(
-        nombre_normalizado, 
-        nombres_normalizados,
-        scorer=fuzz.partial_ratio,
-        limit=20
-    )
-    
-    matches_validos = [(match, score, idx) for match, score, idx in matches if score >= umbral_fuzzy]
+    try:
+        matches = process.extract(
+            nombre_normalizado, 
+            nombres_normalizados,
+            scorer=fuzz.partial_ratio,
+            limit=20
+        )
+        
+        # Manejar ambos formatos: (match, score) o (match, score, idx)
+        # Nuevo formato de thefuzz: solo devuelve (match, score)
+        if matches and len(matches[0]) == 2:
+            # Formato nuevo: (match, score)
+            matches_validos = []
+            for match, score in matches:
+                if score >= umbral_fuzzy:
+                    # Buscar el índice manualmente
+                    idx = nombres_normalizados.index(match) if match in nombres_normalizados else None
+                    if idx is not None:
+                        matches_validos.append((match, score, idx))
+        else:
+            # Formato antiguo: (match, score, idx)
+            matches_validos = [(match, score, idx) for match, score, idx in matches if score >= umbral_fuzzy]
+        
+    except Exception as e:
+        logger.error(f"Error en fuzzy search: {e}")
+        return pd.DataFrame()
     
     if not matches_validos:
         logger.warning(f"Sin resultados fuzzy | Query: '{nombre}' | Umbral: {umbral_fuzzy}")

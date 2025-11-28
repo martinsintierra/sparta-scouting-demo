@@ -41,7 +41,7 @@ st.sidebar.header("🔍 Configuración de Búsqueda")
 
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
-    placeholder="Ej: Messi, Alvarez, Echeverri",
+    placeholder="Ej: Retegui, Borja, Arce",
     help="💡 **Búsqueda inteligente:** Escribe con errores de tipeo, sin tildes o mayúsculas. ¡Funciona igual!"
 )
 

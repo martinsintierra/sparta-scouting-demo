@@ -38,7 +38,7 @@ st.sidebar.header("🔍 Seleccionar Jugador")
 
 nombre_buscar = st.sidebar.text_input(
     "Buscar Jugador", 
-    placeholder="Ej: Messi, Haaland...",
+    placeholder="Ej: Valentin Gomez, Lucas Castro...",
     help="Busca el jugador que quieres destacar en el mapa"
 )
 

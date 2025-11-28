@@ -54,10 +54,11 @@ if not client:
     st.stop()
 
 # Header
-st.title("⚽ Scouting Pro AI - Motor Vectorial de Similitud")
+st.title("Scouting Proproprporpo  - Motor Vectorial de Similitud")
 st.markdown("""
 Sistema de recomendación basado en **K-Nearest Neighbors** con ponderación por posición y decay temporal.  
 Encuentra jugadores similares usando xG, xA, pases progresivos, recuperaciones y más.
+Actualmente cubre Liga Profesional Argentina (2021-2025) y Primera B Nacional (2025)
 """)
 
 st.divider()

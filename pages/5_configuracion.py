@@ -2,7 +2,6 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.logger import setup_logger
 from utils.database import CACHE_FILE, CACHE_DIR

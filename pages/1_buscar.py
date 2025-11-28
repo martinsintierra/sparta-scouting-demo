@@ -2,8 +2,7 @@ import streamlit as st
 import sys
 from pathlib import Path
 
-# Añadir directorio raíz al path para imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 from utils.database import get_all_players_index, obtener_similares
 from utils.search import buscar_jugadores_fuzzy, format_player_label

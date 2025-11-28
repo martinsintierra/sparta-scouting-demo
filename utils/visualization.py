@@ -1,0 +1,333 @@
+import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
+import plotly.express as px
+import numpy as np
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from .logger import setup_logger
+
+logger = setup_logger(__name__)
+
+
+def mostrar_tarjeta_jugador(jugador_detalle: pd.Series, unique_key: str):
+    """
+    Renderiza la tarjeta de detalle de un jugador
+    
+    Args:
+        jugador_detalle: Serie con datos del jugador
+        unique_key: Clave única para widgets
+    """
+    with st.container():
+        st.markdown("---")
+        
+        # Header
+        col_header1, col_header2, col_header3 = st.columns([3, 1, 1])
+        with col_header1:
+            st.markdown(f"### {jugador_detalle['destino_nombre']}")
+            st.caption(f"{jugador_detalle['destino_equipo']} | {jugador_detalle['posicion']}")
+        with col_header2:
+            st.markdown(f"""
+            <div class="similarity-badge">
+                {jugador_detalle['score_similitud']:.1f}% Match
+            </div>
+            """, unsafe_allow_html=True)
+        with col_header3:
+            st.caption(f"📅 Temp. {int(jugador_detalle['temporada_similar'])}")
+        
+        # Métricas principales
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        
+        with col1:
+            st.metric("🎂 Edad", f"{int(jugador_detalle['destino_edad'])}")
+        with col2:
+            altura = jugador_detalle['destino_altura']
+            st.metric("📏 Altura", f"{altura:.0f} cm" if pd.notnull(altura) else "N/A")
+        with col3:
+            pie = jugador_detalle['destino_pie']
+            st.metric("🦶 Pie", pie if pd.notnull(pie) else "N/A")
+        with col4:
+            st.metric("🌍 País", jugador_detalle['destino_nacionalidad'])
+        with col5:
+            valor = jugador_detalle['destino_valor']
+            if pd.notnull(valor) and valor > 0:
+                st.metric("💰 Valor", f"€{valor/1000:.0f}K")
+            else:
+                st.metric("💰 Valor", "N/A")
+        with col6:
+            contrato = jugador_detalle['destino_contrato']
+            st.metric("📄 Contrato", str(contrato)[:4] if pd.notnull(contrato) else "N/A")
+        
+        # Stats de rendimiento
+        st.markdown("#### 📊 Estadísticas por 90 minutos")
+        col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
+        
+        with col_stat1:
+            st.metric("⭐ Rating", f"{jugador_detalle['destino_rating']:.2f}")
+        with col_stat2:
+            st.metric("⚽ Goles", f"{jugador_detalle['destino_goles']:.2f}")
+        with col_stat3:
+            st.metric("🎯 xG", f"{jugador_detalle['destino_xg']:.2f}")
+        with col_stat4:
+            st.metric("🅰️ Asist.", f"{jugador_detalle['destino_asistencias']:.2f}")
+        with col_stat5:
+            st.metric("📤 xA", f"{jugador_detalle['destino_xa']:.2f}")
+        with col_stat6:
+            st.metric("⬆️ Prog. Pass", f"{jugador_detalle['destino_prog_passes']:.2f}")
+        
+        # Gráfico de Radar
+        st.markdown("#### 🎯 Perfil Comparativo (Percentiles)")
+        
+        categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones']
+        
+        values_jugador = [
+            jugador_detalle.get('destino_pct_xg', 0) * 100,
+            jugador_detalle.get('destino_pct_xa', 0) * 100,
+            jugador_detalle.get('destino_pct_prog', 0) * 100,
+            jugador_detalle.get('destino_pct_dribbles', 0) * 100,
+            jugador_detalle.get('destino_pct_recov', 0) * 100,
+        ]
+        
+        fig = go.Figure()
+        
+        fig.add_trace(go.Scatterpolar(
+            r=values_jugador,
+            theta=categories,
+            fill='toself',
+            name=jugador_detalle['destino_nombre'],
+            line_color='#667eea'
+        ))
+        
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(
+                    visible=True,
+                    range=[0, 100]
+                )
+            ),
+            showlegend=True,
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True, key=f"radar_{unique_key}")
+        
+        # Contexto adicional
+        col_ctx1, col_ctx2 = st.columns(2)
+        with col_ctx1:
+            st.info(f"📈 Partidos jugados: {int(jugador_detalle['destino_partidos'])}")
+        with col_ctx2:
+            st.info(f"⏱️ Minutos totales: {int(jugador_detalle['destino_minutos'])}")
+
+
+def mostrar_timeline_evolucion(player_id: int, nombre_jugador: str, df_evo: pd.DataFrame):
+    """
+    Renderiza timeline de evolución del jugador
+    
+    Args:
+        player_id: ID del jugador
+        nombre_jugador: Nombre del jugador
+        df_evo: DataFrame con datos históricos
+    """
+    if df_evo.empty or len(df_evo) < 2:
+        st.info(f"📊 No hay suficientes datos históricos para {nombre_jugador}")
+        return
+    
+    st.markdown(f"#### 📈 Evolución Histórica: {nombre_jugador}")
+    
+    # Selector de métricas
+    col_select1, col_select2 = st.columns(2)
+    
+    metricas_disponibles = {
+        'rating_promedio': '⭐ Rating',
+        'xG_p90': '🎯 xG por 90min',
+        'xA_p90': '📤 xA por 90min',
+        'goals_p90': '⚽ Goles por 90min',
+        'assists_p90': '🅰️ Asistencias por 90min',
+        'prog_passes_p90': '⬆️ Pases Progresivos por 90min'
+    }
+    
+    with col_select1:
+        metrica_principal = st.selectbox(
+            "Métrica Principal",
+            options=list(metricas_disponibles.keys()),
+            format_func=lambda x: metricas_disponibles[x],
+            key=f"timeline_main_{player_id}"
+        )
+    
+    with col_select2:
+        metrica_secundaria = st.selectbox(
+            "Métrica Secundaria (opcional)",
+            options=[None] + list(metricas_disponibles.keys()),
+            format_func=lambda x: "Ninguna" if x is None else metricas_disponibles[x],
+            key=f"timeline_sec_{player_id}"
+        )
+    
+    # Crear figura
+    fig = go.Figure()
+    
+    # Línea principal
+    fig.add_trace(go.Scatter(
+        x=df_evo['temporada_anio'],
+        y=df_evo[metrica_principal],
+        mode='lines+markers',
+        name=metricas_disponibles[metrica_principal],
+        line=dict(color='#667eea', width=3),
+        marker=dict(size=10),
+        hovertemplate='<b>Temp %{x}</b><br>%{y:.2f}<extra></extra>'
+    ))
+    
+    # Línea secundaria
+    if metrica_secundaria and metrica_secundaria != metrica_principal:
+        fig.add_trace(go.Scatter(
+            x=df_evo['temporada_anio'],
+            y=df_evo[metrica_secundaria],
+            mode='lines+markers',
+            name=metricas_disponibles[metrica_secundaria],
+            line=dict(color='#f59e0b', width=3, dash='dash'),
+            marker=dict(size=8),
+            yaxis='y2',
+            hovertemplate='<b>Temp %{x}</b><br>%{y:.2f}<extra></extra>'
+        ))
+        
+        fig.update_layout(
+            yaxis2=dict(
+                title=metricas_disponibles[metrica_secundaria],
+                overlaying='y',
+                side='right',
+                showgrid=False
+            )
+        )
+    
+    fig.update_layout(
+        title=f"Evolución de {nombre_jugador} ({df_evo['temporada_anio'].min()}-{df_evo['temporada_anio'].max()})",
+        xaxis_title="Temporada",
+        yaxis_title=metricas_disponibles[metrica_principal],
+        hovermode='x unified',
+        height=450,
+        showlegend=True,
+        template='plotly_white'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Tabla resumen
+    with st.expander("📋 Ver datos completos"):
+        df_display = df_evo.copy()
+        df_display.columns = [
+            'Temporada', 'Rating', 'xG/90', 'xA/90', 
+            'Goles/90', 'Asist/90', 'ProgPass/90', 'PJ', 'Minutos'
+        ]
+        st.dataframe(df_display, use_container_width=True, hide_index=True)
+
+
+def mostrar_mapa_pca(
+    player_id_seleccionado: int, 
+    posicion: str, 
+    temporada: int, 
+    nombre_jugador: str, 
+    df_pca: pd.DataFrame
+):
+    """
+    Renderiza mapa PCA con el jugador destacado
+    
+    Args:
+        player_id_seleccionado: ID del jugador a destacar
+        posicion: Posición
+        temporada: Temporada
+        nombre_jugador: Nombre del jugador
+        df_pca: DataFrame con datos para PCA
+    """
+    if df_pca.empty or len(df_pca) < 10:
+        st.warning(f"⚠️ Insuficientes datos para PCA en {posicion} (temporada {temporada})")
+        return
+    
+    st.markdown(f"#### 🗺️ Mapa de Similitud (PCA): {posicion} - Temp {temporada}")
+    st.caption("Reducción dimensional de percentiles estadísticos. Jugadores cercanos tienen perfiles similares.")
+    
+    # Preparar datos
+    columnas_pca = ['pct_xG', 'pct_xA', 'pct_prog_passes', 'pct_dribbles', 'pct_recoveries', 'pct_aerial', 'pct_rating']
+    X = df_pca[columnas_pca].fillna(0).values
+    
+    # Normalizar y PCA
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    pca = PCA(n_components=2)
+    X_pca = pca.fit_transform(X_scaled)
+    
+    df_pca['PC1'] = X_pca[:, 0]
+    df_pca['PC2'] = X_pca[:, 1]
+    
+    # Identificar jugador seleccionado
+    df_pca['es_seleccionado'] = df_pca['player_id'] == player_id_seleccionado
+    df_pca['color'] = df_pca['es_seleccionado'].map({True: 'Jugador Seleccionado', False: 'Otros'})
+    df_pca['size'] = df_pca['es_seleccionado'].map({True: 15, False: 8})
+    
+    # Scatter plot
+    fig = px.scatter(
+        df_pca,
+        x='PC1',
+        y='PC2',
+        color='color',
+        size='size',
+        hover_name='nombre_jugador',
+        hover_data={
+            'equipo_principal': True,
+            'rating_promedio': ':.2f',
+            'valor_millones': ':.1f',
+            'PC1': False,
+            'PC2': False,
+            'color': False,
+            'size': False
+        },
+        color_discrete_map={
+            'Jugador Seleccionado': '#ef4444',
+            'Otros': '#667eea'
+        },
+        title=f"Mapa de Perfiles - {posicion} ({len(df_pca)} jugadores)"
+    )
+    
+    fig.update_traces(marker=dict(line=dict(width=1, color='white'), opacity=0.7))
+    
+    fig.update_layout(
+        height=500,
+        xaxis_title=f"PC1 ({pca.explained_variance_ratio_[0]*100:.1f}% varianza)",
+        yaxis_title=f"PC2 ({pca.explained_variance_ratio_[1]*100:.1f}% varianza)",
+        showlegend=True,
+        template='plotly_white'
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # Métricas
+    col_var1, col_var2, col_var3 = st.columns(3)
+    with col_var1:
+        st.metric("🎯 Varianza Explicada (PC1+PC2)", 
+                  f"{(pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1])*100:.1f}%")
+    with col_var2:
+        st.metric("👥 Jugadores Analizados", len(df_pca))
+    with col_var3:
+        if df_pca['es_seleccionado'].any():
+            idx_seleccionado = df_pca[df_pca['es_seleccionado']].index[0]
+            pc1_sel = df_pca.loc[idx_seleccionado, 'PC1']
+            pc2_sel = df_pca.loc[idx_seleccionado, 'PC2']
+            
+            df_pca['distancia'] = np.sqrt(
+                (df_pca['PC1'] - pc1_sel)**2 + (df_pca['PC2'] - pc2_sel)**2
+            )
+            
+            umbral_cercania = df_pca['distancia'].quantile(0.10)
+            cercanos = len(df_pca[df_pca['distancia'] <= umbral_cercania]) - 1
+            st.metric("🎪 Jugadores Muy Similares", f"{cercanos}")
+    
+    # Top 10 más cercanos
+    with st.expander("🔍 Ver los 10 jugadores más similares (por distancia PCA)"):
+        if df_pca['es_seleccionado'].any():
+            df_cercanos = df_pca[~df_pca['es_seleccionado']].nsmallest(10, 'distancia')
+            df_cercanos_display = df_cercanos[[
+                'nombre_jugador', 'equipo_principal', 'rating_promedio', 
+                'valor_millones', 'distancia'
+            ]].copy()
+            df_cercanos_display.columns = ['Jugador', 'Equipo', 'Rating', 'Valor (€M)', 'Distancia PCA']
+            df_cercanos_display['Distancia PCA'] = df_cercanos_display['Distancia PCA'].round(3)
+            st.dataframe(df_cercanos_display, use_container_width=True, hide_index=True)

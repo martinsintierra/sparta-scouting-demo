@@ -272,28 +272,144 @@ with tab_tecnico:
         st.markdown("""
         ---
         ### K-Nearest Neighbors (K-NN)
+        """)
         
+        st.markdown("""
         El algoritmo K-NN es un método de clasificación y regresión que identifica elementos 
         similares basándose en distancia en un espacio multidimensional.
         
         **¿Cómo funciona en este sistema?**
         
-        1. **Representación vectorial**: Cada jugador es un punto en un espacio de 7+ dimensiones
-        2. **Distancia entre jugadores**: Se calcula la distancia euclidiana entre vectores
-        3. **Ponderación por posición**: Mayor peso en métricas relevantes por posición
-        4. **Decay temporal**: Datos más recientes tienen mayor peso
-        5. **Normalización por percentiles**: Comparación justa dentro de cada posición
+        1. **Representación vectorial**  
+           Cada jugador es un punto en un espacio de 7+ dimensiones (una por métrica: xG, xA, 
+           pases progresivos, recoveries, etc.)
         
+        2. **Distancia entre jugadores**  
+           Se calcula la distancia euclidiana entre vectores. Jugadores "cercanos" tienen 
+           perfiles estadísticos similares.
+        
+        3. **Ponderación por posición**  
+           No todas las métricas pesan igual:
+           - Delanteros: mayor peso en xG, xA, dribbles
+           - Mediocampistas: mayor peso en pases progresivos, key passes
+           - Defensores: mayor peso en recoveries, duelos aéreos, tackles
+        
+        4. **Decay temporal**  
+           Datos más recientes tienen mayor peso que datos antiguos. Un jugador de 2025 
+           se compara principalmente con jugadores de 2024-2025, no de 2021.
+        
+        5. **Normalización por percentiles**  
+           Las métricas se normalizan dentro de cada posición para evitar que delanteros 
+           y defensores sean directamente comparables en xG (lo cual no tendría sentido).
+        
+        **Ventajas del K-NN:**
+        - No asume una relación lineal entre variables
+        - Robusto a datos atípicos
+        - Intuitivo: "mostrame quién se "parece" a este jugador"
+        
+        **Limitaciones:**
+        - Sensible a la escala de las variables (por eso normalizamos)
+        - Computacionalmente costoso en datasets muy grandes (mitigado con caché)
+        - No explica POR QUÉ dos jugadores son similares, solo QUE lo son
+        """)
+        
+        st.markdown("""
         ---
         ### Principal Component Analysis (PCA)
+        """)
         
+        st.markdown("""
         PCA es una técnica de reducción dimensional que proyecta datos de alta dimensión 
-        en un espacio visualizable de 2 dimensiones.
+        (7+ métricas) en un espacio de 2 dimensiones visualizable.
         
-        **Interpretación del mapa:**
-        - Jugadores cercanos = perfiles similares
-        - PC1 y PC2 explican ~70-80% de la varianza
-        - Permite identificar clusters de estilos de juego
+        **¿Cómo funciona?**
+        
+        1. **Estandarización**  
+           Todas las métricas se llevan a la misma escala (media 0, desviación estándar 1).
+        
+        2. **Cálculo de componentes principales**  
+           Se identifican las direcciones de máxima varianza en los datos. La primera 
+           componente (PC1) explica la mayor varianza, la segunda (PC2) la segunda mayor, etc.
+        
+        3. **Proyección**  
+           Cada jugador se proyecta en el nuevo espacio de 2 dimensiones (PC1, PC2).
+        
+        **Interpretación del mapa PCA:**
+        - Jugadores cercanos físicamente en el mapa tienen perfiles estadísticos similares
+        - La distancia entre jugadores es proporcional a su diferencia estadística
+        - PC1 y PC2 son combinaciones lineales de las métricas originales
+        - Típicamente PC1+PC2 explican 70-80% de la varianza total
+        
+        **Ejemplo práctico:**
+        - PC1 podría representar "productividad ofensiva general" (xG + xA + goles)
+        - PC2 podría representar "estilo de juego" (dribbles vs pases progresivos)
+        
+        **Limitaciones:**
+        - Pierde información (solo conserva 70-80% de la varianza)
+        - Las componentes no siempre tienen interpretación clara
+        - Asume relaciones lineales entre variables
+        """)
+        
+        st.markdown("""
+        ---
+        ### Búsqueda Fuzzy (Levenshtein Distance)
+        """)
+        
+        st.markdown("""
+        La búsqueda fuzzy permite encontrar coincidencias aproximadas tolerando errores de tipeo.
+        
+        **¿Cómo funciona?**
+        
+        1. **Normalización**  
+           Se eliminan tildes, caracteres especiales y se convierte a mayúsculas.
+           - "Julián Álvarez" → "JULIAN ALVAREZ"
+        
+        2. **Distancia de Levenshtein**  
+           Cuenta el número mínimo de operaciones (insertar, borrar, sustituir) necesarias 
+           para transformar una cadena en otra.
+           - "Mesii" vs "Messi" = 1 operación (sustituir 'i' por 's')
+           - "Alvares" vs "Alvarez" = 1 operación (sustituir 's' por 'z')
+        
+        3. **Partial Ratio Scoring**  
+           Además de la distancia exacta, evalúa coincidencias parciales.
+           - "Gome" encuentra "Valentin Gomez" (substring matching)
+        
+        4. **Umbral de tolerancia**  
+           El usuario ajusta qué tan estricta es la búsqueda (70-100%). Menor umbral = 
+           acepta más diferencias.
+        
+        **Ventajas:**
+        - Tolerante a errores humanos
+        - Funciona sin tildes ni caracteres especiales
+        - Encuentra variaciones del mismo nombre
+        
+        **Limitaciones:**
+        - Puede dar falsos positivos si el umbral es muy bajo
+        - No entiende contexto semántico ("Kun" no encontraría "Agüero" automáticamente)
+        """)
+        
+        st.markdown("""
+        ---
+        ### Sistema de Caché
+        """)
+        
+        st.markdown("""
+        Para optimizar performance, el sistema usa múltiples niveles de caché:
+        
+        **Caché en disco (24 horas)**  
+        - Almacena el índice completo de jugadores en formato Parquet
+        - Evita consultas repetidas a BigQuery
+        - Se regenera automáticamente cada 24 horas
+        
+        **Caché en memoria (1 hora)**  
+        - Mantiene en RAM resultados de queries específicas
+        - Usa el decorador @st.cache_data de Streamlit
+        - Se limpia al cambiar parámetros de búsqueda
+        
+        **Búsquedas locales**  
+        - La búsqueda fuzzy se hace en memoria sobre el índice cacheado
+        - No requiere conexión a BigQuery
+        - Respuestas instantáneas (<100ms)
         """)
     
     else:  # English
@@ -334,34 +450,155 @@ with tab_tecnico:
         st.markdown("""
         ---
         ### K-Nearest Neighbors (K-NN)
+        """)
         
+        st.markdown("""
         The K-NN algorithm is a classification and regression method that identifies similar 
         elements based on distance in multidimensional space.
         
         **How does it work in this system?**
         
-        1. **Vector representation**: Each player is a point in 7+ dimensional space
-        2. **Distance between players**: Euclidean distance is calculated between vectors
-        3. **Position weighting**: Higher weight on relevant metrics per position
-        4. **Temporal decay**: More recent data has higher weight
-        5. **Percentile normalization**: Fair comparison within each position
+        1. **Vector representation**  
+           Each player is a point in a 7+ dimensional space (one per metric: xG, xA, 
+           progressive passes, recoveries, etc.)
         
+        2. **Distance between players**  
+           Euclidean distance is calculated between vectors. "Close" players have 
+           similar statistical profiles.
+        
+        3. **Position-based weighting**  
+           Not all metrics weigh equally:
+           - Forwards: higher weight on xG, xA, dribbles
+           - Midfielders: higher weight on progressive passes, key passes
+           - Defenders: higher weight on recoveries, aerial duels, tackles
+        
+        4. **Temporal decay**  
+           More recent data has higher weight than older data. A 2025 player 
+           is compared mainly with 2024-2025 players, not with 2021.
+        
+        5. **Percentile normalization**  
+           Metrics are normalized within each position to avoid forwards 
+           and defenders being directly comparable on xG (which wouldn't make sense).
+        
+        **K-NN Advantages:**
+        - Doesn't assume linear relationships between variables
+        - Robust to outliers
+        - Intuitive: "show me who 'resembles' this player"
+        
+        **Limitations:**
+        - Sensitive to variable scale (that's why we normalize)
+        - Computationally expensive on very large datasets (mitigated with cache)
+        - Doesn't explain WHY two players are similar, only THAT they are
+        """)
+        
+        st.markdown("""
         ---
         ### Principal Component Analysis (PCA)
+        """)
         
+        st.markdown("""
         PCA is a dimensional reduction technique that projects high-dimensional data 
-        into a visualizable 2-dimensional space.
+        (7+ metrics) into a visualizable 2-dimensional space.
         
-        **Map interpretation:**
-        - Close players = similar profiles
-        - PC1 and PC2 explain ~70-80% of variance
-        - Allows identifying playing style clusters
+        **How does it work?**
+        
+        1. **Standardization**  
+           All metrics are brought to the same scale (mean 0, standard deviation 1).
+        
+        2. **Principal components calculation**  
+           The directions of maximum variance in the data are identified. The first 
+           component (PC1) explains the greatest variance, the second (PC2) the second greatest, etc.
+        
+        3. **Projection**  
+           Each player is projected into the new 2-dimensional space (PC1, PC2).
+        
+        **PCA map interpretation:**
+        - Players physically close on the map have similar statistical profiles
+        - Distance between players is proportional to their statistical difference
+        - PC1 and PC2 are linear combinations of the original metrics
+        - Typically PC1+PC2 explain 70-80% of total variance
+        
+        **Practical example:**
+        - PC1 might represent "general offensive productivity" (xG + xA + goals)
+        - PC2 might represent "playing style" (dribbles vs progressive passes)
+        
+        **Limitations:**
+        - Loses information (only preserves 70-80% of variance)
+        - Components don't always have clear interpretation
+        - Assumes linear relationships between variables
+        """)
+        
+        st.markdown("""
+        ---
+        ### Fuzzy Search (Levenshtein Distance)
+        """)
+        
+        st.markdown("""
+        Fuzzy search allows finding approximate matches while tolerating typos.
+        
+        **How does it work?**
+        
+        1. **Normalization**  
+           Accents and special characters are removed, and text is converted to uppercase.
+           - "Julián Álvarez" → "JULIAN ALVAREZ"
+        
+        2. **Levenshtein Distance**  
+           Counts the minimum number of operations (insert, delete, substitute) needed 
+           to transform one string into another.
+           - "Mesii" vs "Messi" = 1 operation (substitute 'i' with 's')
+           - "Alvares" vs "Alvarez" = 1 operation (substitute 's' with 'z')
+        
+        3. **Partial Ratio Scoring**  
+           Besides exact distance, evaluates partial matches.
+           - "Gome" finds "Valentin Gomez" (substring matching)
+        
+        4. **Tolerance threshold**  
+           User adjusts how strict the search is (70-100%). Lower threshold = 
+           accepts more differences.
+        
+        **Advantages:**
+        - Tolerant to human errors
+        - Works without accents or special characters
+        - Finds variations of the same name
+        
+        **Limitations:**
+        - Can give false positives if threshold is too low
+        - Doesn't understand semantic context ("Kun" wouldn't find "Agüero" automatically)
+        """)
+        
+        st.markdown("""
+        ---
+        ### Cache System
+        """)
+        
+        st.markdown("""
+        To optimize performance, the system uses multiple cache levels:
+        
+        **Disk cache (24 hours)**  
+        - Stores complete player index in Parquet format
+        - Avoids repeated BigQuery queries
+        - Automatically regenerated every 24 hours
+        
+        **Memory cache (1 hour)**  
+        - Keeps specific query results in RAM
+        - Uses Streamlit's @st.cache_data decorator
+        - Cleared when search parameters change
+        
+        **Local searches**  
+        - Fuzzy search is done in memory on cached index
+        - Doesn't require BigQuery connection
+        - Instant responses (<100ms)
         """)
 
 # ==================== TAB 3: DISCLAIMERS ====================
 with tab_disclaimers:
     if lang == 'es':
         st.header("⚠️ Limitaciones y Uso Responsable")
+        
+        st.markdown("""
+        ---
+        ### Alcances de las Estadísticas
+        """)
         
         st.warning("""
         Este sistema analiza el **rendimiento estadístico** de jugadores basándose en datos 
@@ -376,30 +613,35 @@ with tab_disclaimers:
         
         with col_limit1:
             st.markdown("""
-            **Aspectos tácticos:**
-            - Inteligencia táctica
+            **Aspectos tácticos y cognitivos:**
+            - Inteligencia táctica y lectura del juego
             - Posicionamiento sin pelota
-            - Comunicación y liderazgo
-            - Adaptación táctica
+            - Comunicación y liderazgo en cancha
+            - Capacidad de adaptación táctica
+            - Timing y toma de decisiones bajo presión
             
-            **Aspectos físicos:**
-            - Estado físico real
-            - Historial de lesiones
-            - Resistencia a la fatiga
+            **Aspectos físicos y médicos:**
+            - Estado físico real y forma actual
+            - Historial de lesiones y predisposición
+            - Resistencia a la fatiga en fase final de temporada
+            - Recuperación entre partidos
             """)
         
         with col_limit2:
             st.markdown("""
             **Aspectos contextuales:**
-            - Nivel de la competición
-            - Calidad de compañeros
-            - Sistema de juego del equipo
-            - Momento emocional
+            - Nivel de la competición donde juega
+            - Calidad de compañeros que lo rodean
+            - Sistema de juego y rol específico del DT
+            - Momento emocional y situación personal
+            - Influencia del técnico
+            - Adaptabilidad a nuevos entornos o ligas
             
             **Aspectos intangibles:**
-            - Mentalidad competitiva
-            - Profesionalismo
-            - Liderazgo
+            - Mentalidad y carácter competitivo
+            - Profesionalismo y disciplina
+            - Capacidad de liderazgo
+            - Ambición
             """)
         
         st.markdown("""
@@ -410,27 +652,126 @@ with tab_disclaimers:
         st.info("""
         **Este sistema es una PRIMERA APROXIMACIÓN, no un veredicto final.**
         
-        Las estadísticas son un mapa: te muestran el terreno, pero no caminan en tu lugar.
+        Las estadísticas son una suerte de mapa: te muestran el terreno, pero no caminan en tu lugar.
+        """)
+        
+        st.markdown("""
+        **Uso correcto del sistema:**
+        
+        1. **Filtro inicial**  
+           Identifica jugadores con perfiles estadísticos similares al que se busca.
+        
+        2. **Generación de hipótesis**  
+           Descubre opciones que quizás no se habían considerado (ligas menores, mercados menos visibles).
+        
+        3. **Punto de partida**  
+           Las estadísticas te dicen "dónde mirar", no "a quién comprar".
+        
+        **Después del análisis estadístico, es fundamental:**
+        
+        - Ver partidos completos del jugador (mínimo 3-4 encuentros)
+        - Consultar con scouts que lo hayan visto en vivo
+        - Investigar su entorno personal y profesional
+        - Revisar historial médico
+        - Hablar con personas que lo conocen (entrenadores, compañeros)
+        - Evaluar compatibilidad con el sistema de juego del equipo
+        """)
+        
+        st.markdown("""
+        ---
+        ### Ejemplo Práctico: Interpretación Correcta vs Incorrecta
+        """)
+        
+        col_ej1, col_ej2 = st.columns(2)
+        
+        with col_ej1:
+            st.error("""
+            **Interpretación INCORRECTA:**
+            
+            "Este delantero de 24 años tiene xG alto y valor bajo. Está regalado y hay que agarrarlo ya."
+            
+            *Problema: decisión basada solo en números, sin contexto ni validación.*
+            """)
+        
+        with col_ej2:
+            st.success("""
+            **Interpretación CORRECTA:**
+            
+            "Este perfil estadístico es interesante. Estaría bueno:
+            - Ver 3-4 partidos completos
+            - Investigar por qué su valor es bajo (lesiones, problemas de conducta, liga menor)
+            - Evaluar si su estilo encaja con sistema X
+            - Confirmar con scouts locales si el dato es real o hay contexto que explique los números"
+            
+            *Enfoque: estadísticas como punto de partida, no como decisión final.*
+            """)
+        
+        st.markdown("""
+        ---
+        ### Combinación Óptima: Datos + Observación + Contexto
+        """)
+        
+        col_peso1, col_peso2, col_peso3 = st.columns(3)
+        
+        with col_peso1:
+            st.metric("Datos estadísticos", "30%", help="Lo que se ve en este sistema")
+        
+        with col_peso2:
+            st.metric("Observación directa", "40%", help="Ver jugar al jugador en vivo o en video")
+        
+        with col_peso3:
+            st.metric("Contexto e intuición", "30%", help="Experiencia humana, conversaciones, contexto")
+        
+        st.markdown("""
+        Un buen proceso de scouting combina estas tres dimensiones. Ninguna por sí sola es suficiente.
+        """)
+        
+        st.markdown("""
+        ---
+        ### Casos de Uso Apropiados
         """)
         
         st.success("""
         **El sistema es útil para:**
-        - Reducir el universo de opciones
-        - Encontrar patrones objetivos
-        - Validar intuiciones con datos
+        - Reducir el universo de opciones en un mercado amplio
+        - Encontrar patrones y similitudes objetivas
+        - Validar o cuestionar intuiciones con datos
         - Descubrir jugadores en mercados menos visibles
+        - Identificar jugadores en progresión o declive
+        - Comparar alternativas de forma objetiva
         """)
         
         st.error("""
         **El sistema NO debe usarse para:**
-        - Tomar decisiones sin validación adicional
-        - Reemplazar el análisis visual
-        - Ignorar el contexto táctico
-        - Evaluar jugadores con pocos minutos
+        - Tomar decisiones de fichaje sin validación adicional
+        - Reemplazar el análisis visual de partidos
+        - Ignorar el contexto táctico y emocional
+        - Evaluar jugadores con muy pocos minutos (<300)
+        - Comparar directamente ligas de niveles muy distintos
+        """)
+        
+        st.markdown("""
+        ---
+        ### Nota Final
+        """)
+        
+        st.info("""
+        Las herramientas computacionales son cada vez más sofisticadas, pero el fútbol sigue 
+        siendo un deporte humano donde el contexto, el momento y los intangibles importan tanto 
+        como los números.
+        
+        Este sistema ayudaría a trabajar de forma más eficiente, pero nunca sería el reemplazo del ojo 
+        experto, la conversación entre pares y/o el análisis de contexto.
+        
         """)
     
     else:  # English
         st.header("⚠️ Limitations and Responsible Use")
+        
+        st.markdown("""
+        ---
+        ### Scope of Statistics
+        """)
         
         st.warning("""
         This system analyzes players' **statistical performance** based on objective 
@@ -438,37 +779,42 @@ with tab_disclaimers:
         """)
         
         st.markdown("""
-        ### What statistics DON'T capture:
+        ### What statistics DO NOT capture:
         """)
         
         col_limit1, col_limit2 = st.columns(2)
         
         with col_limit1:
             st.markdown("""
-            **Tactical aspects:**
-            - Tactical intelligence
+            **Tactical and cognitive aspects:**
+            - Tactical intelligence and game reading
             - Off-ball positioning
-            - Communication and leadership
-            - Tactical adaptation
+            - On-field communication and leadership
+            - Tactical adaptability
+            - Timing and decision making under pressure
             
-            **Physical aspects:**
-            - Real physical condition
-            - Injury history
-            - Fatigue resistance
+            **Physical and medical aspects:**
+            - Actual physical condition and current form
+            - Injury history and predisposition
+            - Fatigue resistance in the final phase of the season
+            - Recovery between matches
             """)
         
         with col_limit2:
             st.markdown("""
             **Contextual aspects:**
-            - Competition level
-            - Teammates' quality
-            - Team's playing system
-            - Emotional state
+            - Level of competition where they play
+            - Quality of teammates surrounding them
+            - Game system and specific role under the coach
+            - Emotional moment and personal situation
+            - Coach influence
+            - Adaptability to new environments or leagues
             
             **Intangible aspects:**
-            - Competitive mentality
-            - Professionalism
-            - Leadership
+            - Mentality and competitive character
+            - Professionalism and discipline
+            - Leadership capacity
+            - Ambition
             """)
         
         st.markdown("""
@@ -477,25 +823,118 @@ with tab_disclaimers:
         """)
         
         st.info("""
-        **This system is a FIRST APPROACH, not a final verdict.**
+        **This system is a FIRST APPROXIMATION, not a final verdict.**
         
-        Statistics are a map: they show you the terrain, but don't walk for you.
+        Statistics are a kind of map: they show you the terrain, but they don't walk it for you.
+        """)
+        
+        st.markdown("""
+        **Correct use of the system:**
+        
+        1. **Initial filter**  
+           Identifies players with statistical profiles similar to the one sought.
+        
+        2. **Hypothesis generation**  
+           Discovers options that perhaps hadn't been considered (minor leagues, less visible markets).
+        
+        3. **Starting point**  
+           Statistics tell you "where to look", not "who to buy".
+        
+        **After statistical analysis, it is fundamental to:**
+        
+        - Watch full matches of the player (minimum 3-4 games)
+        - Consult with scouts who have seen them live
+        - Investigate their personal and professional environment
+        - Review medical history
+        - Talk to people who know them (coaches, teammates)
+        - Evaluate compatibility with the team's game system
+        """)
+        
+        st.markdown("""
+        ---
+        ### Practical Example: Correct vs Incorrect Interpretation
+        """)
+        
+        col_ej1, col_ej2 = st.columns(2)
+        
+        with col_ej1:
+            st.error("""
+            **INCORRECT Interpretation:**
+            
+            "This 24-year-old forward has high xG and low value. He's a steal and must be signed now."
+            
+            *Problem: decision based only on numbers, without context or validation.*
+            """)
+        
+        with col_ej2:
+            st.success("""
+            **CORRECT Interpretation:**
+            
+            "This statistical profile is interesting. It would be good to:
+            - Watch 3-4 full matches
+            - Investigate why his value is low (injuries, behavioral issues, minor league)
+            - Evaluate if his style fits system X
+            - Confirm with local scouts if the data is real or if there is context explaining the numbers"
+            
+            *Approach: statistics as a starting point, not as a final decision.*
+            """)
+        
+        st.markdown("""
+        ---
+        ### Optimal Combination: Data + Observation + Context
+        """)
+        
+        col_peso1, col_peso2, col_peso3 = st.columns(3)
+        
+        with col_peso1:
+            st.metric("Statistical Data", "30%", help="What is seen in this system")
+        
+        with col_peso2:
+            st.metric("Direct Observation", "40%", help="Watching the player play live or on video")
+        
+        with col_peso3:
+            st.metric("Context & Intuition", "30%", help="Human experience, conversations, context")
+        
+        st.markdown("""
+        A good scouting process combines these three dimensions. None alone is sufficient.
+        """)
+        
+        st.markdown("""
+        ---
+        ### Appropriate Use Cases
         """)
         
         st.success("""
         **The system is useful for:**
-        - Reducing the universe of options
-        - Finding objective patterns
-        - Validating intuitions with data
+        - Reducing the universe of options in a broad market
+        - Finding patterns and objective similarities
+        - Validating or questioning intuitions with data
         - Discovering players in less visible markets
+        - Identifying players in progression or decline
+        - Comparing alternatives objectively
         """)
         
         st.error("""
         **The system should NOT be used to:**
-        - Make decisions without additional validation
-        - Replace visual analysis
-        - Ignore tactical context
-        - Evaluate players with few minutes
+        - Make signing decisions without additional validation
+        - Replace visual match analysis
+        - Ignore tactical and emotional context
+        - Evaluate players with very few minutes (<300)
+        - Directly compare leagues of very different levels
+        """)
+        
+        st.markdown("""
+        ---
+        ### Final Note
+        """)
+        
+        st.info("""
+        Computational tools are becoming increasingly sophisticated, but football remains 
+        a human sport where context, timing, and intangibles matter as much 
+        as the numbers.
+        
+        This system helps to work more efficiently, but would never replace the expert 
+        eye, peer conversation, and/or context analysis.
         """)
 
-logger.info(f"Glossary page rendered (lang: {lang})")
+logger.info("Glosario page rendered")

@@ -395,26 +395,15 @@ TRANSLATIONS = {
     }
 }
 
-
 def get_language() -> str:
-    """
-    Obtiene el idioma actual desde session_state
-    
-    Returns:
-        Código de idioma ('es' o 'en')
-    """
+    """Obtiene el idioma actual desde session_state"""
     if 'language' not in st.session_state:
-        st.session_state.language = 'es'  # Español por defecto
+        st.session_state.language = 'es'
     return st.session_state.language
 
 
 def set_language(lang_code: str):
-    """
-    Establece el idioma de la aplicación
-    
-    Args:
-        lang_code: Código de idioma ('es' o 'en')
-    """
+    """Establece el idioma de la aplicación"""
     if lang_code in TRANSLATIONS:
         st.session_state.language = lang_code
     else:
@@ -423,24 +412,10 @@ def set_language(lang_code: str):
 
 
 def t(key: str, **kwargs) -> str:
-    """
-    Traduce una clave al idioma actual
-    
-    Args:
-        key: Clave de traducción
-        **kwargs: Parámetros para formateo de strings
-    
-    Returns:
-        String traducido
-    
-    Ejemplo:
-        >>> t("results_found", num=5)
-        "Encontrados 5 resultados"
-    """
+    """Traduce una clave al idioma actual"""
     lang = get_language()
     translation = TRANSLATIONS.get(lang, TRANSLATIONS['es']).get(key, key)
     
-    # Aplicar formateo si hay kwargs
     if kwargs:
         try:
             translation = translation.format(**kwargs)
@@ -452,11 +427,76 @@ def t(key: str, **kwargs) -> str:
 
 def language_selector():
     """
-    Renderiza un selector de idioma en la sidebar
+    Renderiza un selector de idioma elegante en la sidebar
     
-    Usage:
-        from utils.i18n import language_selector
-        language_selector()
+    Versión mejorada con mejor UX:
+    - Toggle switch visual
+    - Indica idioma actual con ✓
+    - Más compacto
+    """
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🌐 Language / Idioma")
+    
+    current_lang = get_language()
+    
+    # Crear dos columnas para los botones
+    col_es, col_lang_sep, col_en = st.sidebar.columns([1, 0.2, 1])
+    
+    with col_es:
+        if current_lang == 'es':
+            st.markdown("""
+            <div style='
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 10px;
+                border-radius: 8px;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            '>
+                🇪🇸 Español ✓
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            if st.button("🇪🇸 Español", use_container_width=True, key="lang_es"):
+                set_language('es')
+                st.rerun()
+    
+    with col_lang_sep:
+        st.markdown("<div style='text-align: center; padding-top: 8px;'>|</div>", unsafe_allow_html=True)
+    
+    with col_en:
+        if current_lang == 'en':
+            st.markdown("""
+            <div style='
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 10px;
+                border-radius: 8px;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            '>
+                🇬🇧 English ✓
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            if st.button("🇬🇧 English", use_container_width=True, key="lang_en"):
+                set_language('en')
+                st.rerun()
+    
+    # Pequeño caption con idioma actual
+    lang_name = "Español" if current_lang == 'es' else "English"
+    st.sidebar.caption(f"📍 Current: {lang_name}")
+    
+    st.sidebar.markdown("---")
+
+
+# Versión alternativa aún más minimalista
+def language_selector_minimal():
+    """
+    Selector super compacto con solo emojis/flags
+    Útil si el sidebar está muy lleno
     """
     st.sidebar.markdown("---")
     
@@ -465,33 +505,55 @@ def language_selector():
     col1, col2 = st.sidebar.columns(2)
     
     with col1:
-        if st.button(
-            "🇪🇸 Español" if current_lang != 'es' else "✅ Español",
-            use_container_width=True,
-            type="primary" if current_lang == 'es' else "secondary"
-        ):
-            set_language('es')
-            st.rerun()
+        if current_lang == 'es':
+            st.markdown("**🇪🇸** ✓", unsafe_allow_html=True)
+        else:
+            if st.button("🇪🇸", use_container_width=True, key="lang_es_min"):
+                set_language('es')
+                st.rerun()
     
     with col2:
-        if st.button(
-            "🇬🇧 English" if current_lang != 'en' else "✅ English",
-            use_container_width=True,
-            type="primary" if current_lang == 'en' else "secondary"
-        ):
-            set_language('en')
-            st.rerun()
+        if current_lang == 'en':
+            st.markdown("**🇬🇧** ✓", unsafe_allow_html=True)
+        else:
+            if st.button("🇬🇧", use_container_width=True, key="lang_en_min"):
+                set_language('en')
+                st.rerun()
+
+
+# Versión con radio buttons (más tradicional)
+def language_selector_radio():
+    """
+    Selector con radio buttons - más familiar para algunos usuarios
+    """
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 🌐 Language")
     
-    st.sidebar.caption(f"Current: {'Español' if current_lang == 'es' else 'English'}")
+    current_lang = get_language()
+    
+    options = {
+        'es': '🇪🇸 Español',
+        'en': '🇬🇧 English'
+    }
+    
+    selected = st.sidebar.radio(
+        label="Select language:",
+        options=list(options.keys()),
+        format_func=lambda x: options[x],
+        index=0 if current_lang == 'es' else 1,
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    
+    if selected != current_lang:
+        set_language(selected)
+        st.rerun()
+    
+    st.sidebar.markdown("---")
 
 
 def get_available_languages() -> Dict[str, str]:
-    """
-    Obtiene lista de idiomas disponibles
-    
-    Returns:
-        Diccionario con códigos y nombres de idiomas
-    """
+    """Obtiene lista de idiomas disponibles"""
     return {
         'es': '🇪🇸 Español',
         'en': '🇬🇧 English'

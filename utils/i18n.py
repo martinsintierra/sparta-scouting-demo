@@ -20,7 +20,28 @@ TRANSLATIONS = {
         "page_evolution": "Evolución",
         "page_config": "Configuración",
         "page_glossary": "Glosario",
-        
+                
+        # Filtros económicos
+        "economic_filters": "Filtros Económicos",
+        "max_value": "Valor máximo (millones €)",
+        "age_range": "Rango de edad",
+        "young_prospects": "Solo jóvenes promesas",
+        "young_prospects_help": "< 23 años, rating > 6.5, alta proyección",
+        "projection": "Proyección",
+        "projected_growth": "Crecimiento proyectado",
+        "high_potential": "Alto Potencial",
+        "rising_star": "Estrella en Ascenso",
+        "value_in_millions": "Valor (M€)",
+        "contract_ends": "Fin contrato",
+
+
+
+        # Mensajes de filtros
+        "no_players_in_range": "No hay jugadores en este rango de valores",
+        "adjust_filters": "Ajustá los filtros para ver más resultados",
+        "showing_filtered": "Mostrando {} jugadores filtrados",
+
+
         # Home
         "home_title": "Recurso de Scouting - Motor Vectorial de Similitud",
         "home_subtitle": "Sistema de recomendación basado en **K-Nearest Neighbors** con ponderación por posición y decay temporal.",
@@ -212,6 +233,24 @@ TRANSLATIONS = {
         "page_evolution": "Evolution",
         "page_config": "Settings",
         "page_glossary": "Glossary",
+
+        # Economic filters
+        "economic_filters": "Economic Filters",
+        "max_value": "Max value (millions €)",
+        "age_range": "Age range",
+        "young_prospects": "Young prospects only",
+        "young_prospects_help": "< 23 years, rating > 6.5, high projection",
+        "projection": "Projection",
+        "projected_growth": "Projected growth",
+        "high_potential": "High Potential",
+        "rising_star": "Rising Star",
+        "value_in_millions": "Value (M€)",
+        "contract_ends": "Contract ends",
+        
+        # Filter messages
+        "no_players_in_range": "No players in this value range",
+        "adjust_filters": "Adjust filters to see more results",
+        "showing_filtered": "Showing {} filtered players",
         
         # Home
         "home_title": "Scouting Resource - Vector Similarity Engine",
@@ -424,130 +463,73 @@ def t(key: str, **kwargs) -> str:
     
     return translation
 
-
 def language_selector():
     """
-    Renderiza un selector de idioma elegante en la sidebar
-    
-    Versión mejorada con mejor UX:
-    - Toggle switch visual
-    - Indica idioma actual con ✓
-    - Más compacto
+    Selector de idioma profesional y optimizado
+    Versión final con mejor UX y diseño limpio
     """
     st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🌐 Language / Idioma")
     
     current_lang = get_language()
     
-    # Crear dos columnas para los botones
-    col_es, col_lang_sep, col_en = st.sidebar.columns([1, 0.2, 1])
+    # Título compacto
+    st.sidebar.markdown(
+        "<div style='text-align: center; font-size: 14px; color: #888; margin-bottom: 10px;'>🌐 Language</div>",
+        unsafe_allow_html=True
+    )
+    
+    # Botones lado a lado con diseño mejorado
+    col_es, col_en = st.sidebar.columns(2)
     
     with col_es:
         if current_lang == 'es':
+            # Botón activo con gradiente
             st.markdown("""
             <div style='
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 10px;
-                border-radius: 8px;
+                padding: 12px 8px;
+                border-radius: 10px;
                 text-align: center;
                 color: white;
-                font-weight: bold;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                font-weight: 600;
+                font-size: 13px;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                cursor: default;
+                transition: all 0.3s ease;
             '>
-                🇪🇸 Español ✓
+                🇪🇸 Español
             </div>
             """, unsafe_allow_html=True)
         else:
+            # Botón inactivo clickeable
             if st.button("🇪🇸 Español", use_container_width=True, key="lang_es"):
                 set_language('es')
                 st.rerun()
     
-    with col_lang_sep:
-        st.markdown("<div style='text-align: center; padding-top: 8px;'>|</div>", unsafe_allow_html=True)
-    
     with col_en:
         if current_lang == 'en':
+            # Botón activo con gradiente
             st.markdown("""
             <div style='
                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                padding: 10px;
-                border-radius: 8px;
+                padding: 12px 8px;
+                border-radius: 10px;
                 text-align: center;
                 color: white;
-                font-weight: bold;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                font-weight: 600;
+                font-size: 13px;
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+                cursor: default;
+                transition: all 0.3s ease;
             '>
-                🇬🇧 English ✓
+                🇬🇧 English
             </div>
             """, unsafe_allow_html=True)
         else:
+            # Botón inactivo clickeable
             if st.button("🇬🇧 English", use_container_width=True, key="lang_en"):
                 set_language('en')
                 st.rerun()
-    
-    # Pequeño caption con idioma actual
-    lang_name = "Español" if current_lang == 'es' else "English"
-    st.sidebar.caption(f"📍 Current: {lang_name}")
-    
-    st.sidebar.markdown("---")
-
-
-# Versión alternativa aún más minimalista
-def language_selector_minimal():
-    """
-    Selector super compacto con solo emojis/flags
-    Útil si el sidebar está muy lleno
-    """
-    st.sidebar.markdown("---")
-    
-    current_lang = get_language()
-    
-    col1, col2 = st.sidebar.columns(2)
-    
-    with col1:
-        if current_lang == 'es':
-            st.markdown("**🇪🇸** ✓", unsafe_allow_html=True)
-        else:
-            if st.button("🇪🇸", use_container_width=True, key="lang_es_min"):
-                set_language('es')
-                st.rerun()
-    
-    with col2:
-        if current_lang == 'en':
-            st.markdown("**🇬🇧** ✓", unsafe_allow_html=True)
-        else:
-            if st.button("🇬🇧", use_container_width=True, key="lang_en_min"):
-                set_language('en')
-                st.rerun()
-
-
-# Versión con radio buttons (más tradicional)
-def language_selector_radio():
-    """
-    Selector con radio buttons - más familiar para algunos usuarios
-    """
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 🌐 Language")
-    
-    current_lang = get_language()
-    
-    options = {
-        'es': '🇪🇸 Español',
-        'en': '🇬🇧 English'
-    }
-    
-    selected = st.sidebar.radio(
-        label="Select language:",
-        options=list(options.keys()),
-        format_func=lambda x: options[x],
-        index=0 if current_lang == 'es' else 1,
-        horizontal=True,
-        label_visibility="collapsed"
-    )
-    
-    if selected != current_lang:
-        set_language(selected)
-        st.rerun()
     
     st.sidebar.markdown("---")
 
@@ -555,8 +537,8 @@ def language_selector_radio():
 def get_available_languages() -> Dict[str, str]:
     """Obtiene lista de idiomas disponibles"""
     return {
-        'es': '🇪🇸 Español',
-        'en': '🇬🇧 English'
+        'es': 'Español',
+        'en': 'English'
     }
 
 

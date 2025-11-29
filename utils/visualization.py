@@ -6,13 +6,59 @@ import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from .logger import setup_logger
+from .i18n import t, get_language
 
 logger = setup_logger(__name__)
+
+
+def calcular_proyeccion_valor(jugador: pd.Series) -> dict:
+    """
+    Calcula proyección de crecimiento basada en edad, rating y tendencias
+    
+    Args:
+        jugador: Serie con datos del jugador
+    
+    Returns:
+        Dict con proyección estimada y clasificación
+    """
+    edad = jugador.get('destino_edad', 99)
+    rating = jugador.get('destino_rating', 0)
+    
+    # Lógica de proyección simple
+    if edad < 21 and rating > 7.0:
+        return {
+            'delta_proyectado_pct': 25,
+            'categoria': 'high_potential',
+            'emoji': '🌟',
+            'color': '#10b981'
+        }
+    elif edad < 23 and rating > 6.8:
+        return {
+            'delta_proyectado_pct': 18,
+            'categoria': 'rising_star',
+            'emoji': '⭐',
+            'color': '#3b82f6'
+        }
+    elif edad < 25 and rating > 7.2:
+        return {
+            'delta_proyectado_pct': 12,
+            'categoria': 'emerging',
+            'emoji': '📈',
+            'color': '#8b5cf6'
+        }
+    else:
+        return {
+            'delta_proyectado_pct': 0,
+            'categoria': 'stable',
+            'emoji': '',
+            'color': '#6b7280'
+        }
 
 
 def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Series, unique_key: str):
     """
     Renderiza tarjeta de detalle con comparación directa contra el molde
+    INCLUYE: Badge de proyección de valor
     
     Args:
         jugador_detalle: Serie con datos del jugador similar
@@ -22,45 +68,100 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
     with st.container():
         st.markdown("---")
         
-        # Header
+        # Calcular proyección
+        proyeccion = calcular_proyeccion_valor(jugador_detalle)
+        
+        # ========== HEADER CON BADGE DE PROYECCIÓN ==========
         col_header1, col_header2, col_header3 = st.columns([3, 1, 1])
+        
         with col_header1:
-            st.markdown(f"### {jugador_detalle['destino_nombre']}")
+            # Nombre con emoji de proyección si aplica
+            nombre_display = f"{proyeccion['emoji']} {jugador_detalle['destino_nombre']}" if proyeccion['emoji'] else jugador_detalle['destino_nombre']
+            st.markdown(f"### {nombre_display}")
             st.caption(f"{jugador_detalle['destino_equipo']} | {jugador_detalle['posicion']}")
+        
         with col_header2:
+            # Badge de similitud
             st.markdown(f"""
-            <div class="similarity-badge">
+            <div style='
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                padding: 10px;
+                border-radius: 10px;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
+            '>
                 {jugador_detalle['score_similitud']:.1f}% Match
             </div>
             """, unsafe_allow_html=True)
+        
         with col_header3:
             st.caption(f"📅 Temp. {int(jugador_detalle['temporada_similar'])}")
         
-        # Métricas principales
+        # ========== BADGE DE PROYECCIÓN (SI APLICA) ==========
+        if proyeccion['delta_proyectado_pct'] > 10:
+            lang = get_language()
+            if lang == 'es':
+                texto_proyeccion = f"Proyección: +{proyeccion['delta_proyectado_pct']:.0f}% valor en 1 año"
+                if proyeccion['categoria'] == 'high_potential':
+                    categoria_texto = "Alto Potencial"
+                elif proyeccion['categoria'] == 'rising_star':
+                    categoria_texto = "Estrella en Ascenso"
+                else:
+                    categoria_texto = "Emergente"
+            else:
+                texto_proyeccion = f"Projection: +{proyeccion['delta_proyectado_pct']:.0f}% value in 1 year"
+                if proyeccion['categoria'] == 'high_potential':
+                    categoria_texto = "High Potential"
+                elif proyeccion['categoria'] == 'rising_star':
+                    categoria_texto = "Rising Star"
+                else:
+                    categoria_texto = "Emerging"
+            
+            st.markdown(f"""
+            <div style='
+                background: {proyeccion['color']};
+                padding: 12px 20px;
+                border-radius: 8px;
+                text-align: center;
+                color: white;
+                font-weight: 600;
+                font-size: 15px;
+                margin-bottom: 15px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            '>
+                {proyeccion['emoji']} {categoria_texto} | {texto_proyeccion}
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # ========== MÉTRICAS PRINCIPALES ==========
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
             st.metric("🎂 Edad", f"{int(jugador_detalle['destino_edad'])}")
         with col2:
-            altura = jugador_detalle['destino_altura']
+            altura = jugador_detalle.get('destino_altura')
             st.metric("📏 Altura", f"{altura:.0f} cm" if pd.notnull(altura) else "N/A")
         with col3:
-            pie = jugador_detalle['destino_pie']
+            pie = jugador_detalle.get('destino_pie')
             st.metric("🦶 Pie", pie if pd.notnull(pie) else "N/A")
         with col4:
-            st.metric("🌍 País", jugador_detalle['destino_nacionalidad'])
+            st.metric("🌍 País", jugador_detalle.get('destino_nacionalidad', 'N/A'))
         with col5:
-            valor = jugador_detalle['destino_valor']
+            valor = jugador_detalle.get('destino_valor')
             if pd.notnull(valor) and valor > 0:
                 st.metric("💰 Valor", f"€{valor/1000:.0f}K")
             else:
                 st.metric("💰 Valor", "N/A")
         with col6:
-            contrato = jugador_detalle['destino_contrato']
+            contrato = jugador_detalle.get('destino_contrato')
             st.metric("📄 Contrato", str(contrato)[:4] if pd.notnull(contrato) else "N/A")
         
-        # Stats de rendimiento COMPARATIVAS
-        st.markdown("#### 📊 Estadísticas por 90 minutos (vs Molde)")
+        # ========== STATS COMPARATIVAS ==========
+        lang = get_language()
+        st.markdown(f"#### 📊 {t('comparative_stats') if lang == 'en' else 'Estadísticas por 90 minutos (vs Molde)')}")
+        
         col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
         
         # Helper para calcular delta
@@ -112,8 +213,8 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
                 delta=f"{delta_prog:+.2f}" if delta_prog is not None else None
             )
         
-        # Gráfico de Radar COMPARATIVO
-        st.markdown("#### 🎯 Comparación de Perfiles (Percentiles)")
+        # ========== RADAR COMPARATIVO ==========
+        st.markdown(f"#### 🎯 {t('comparative_radar')}")
         
         categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones']
         
@@ -125,8 +226,6 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
             jugador_detalle.get('destino_pct_recov', 0) * 100,
         ]
         
-        # Valores del molde (necesitamos buscarlos en la base si no están)
-        # Por ahora usamos valores por defecto si no existen
         values_molde = [
             molde.get('pct_xG', 0.5) * 100 if 'pct_xG' in molde else 50,
             molde.get('pct_xA', 0.5) * 100 if 'pct_xA' in molde else 50,
@@ -137,7 +236,7 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
         
         fig = go.Figure()
         
-        # Molde (trazo gris semi-transparente)
+        # Molde (trazo gris)
         fig.add_trace(go.Scatterpolar(
             r=values_molde,
             theta=categories,
@@ -177,22 +276,17 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
         
         st.plotly_chart(fig, use_container_width=True, key=f"radar_{unique_key}")
         
-        # Contexto adicional
+        # ========== CONTEXTO ADICIONAL ==========
         col_ctx1, col_ctx2 = st.columns(2)
         with col_ctx1:
-            st.info(f"📈 Partidos jugados: {int(jugador_detalle['destino_partidos'])}")
+            st.info(f"📈 Partidos: {int(jugador_detalle['destino_partidos'])}")
         with col_ctx2:
-            st.info(f"⏱️ Minutos totales: {int(jugador_detalle['destino_minutos'])}")
+            st.info(f"⏱️ Minutos: {int(jugador_detalle['destino_minutos'])}")
 
 
 def mostrar_timeline_evolucion(player_id: int, nombre_jugador: str, df_evo: pd.DataFrame):
     """
     Renderiza timeline de evolución del jugador
-    
-    Args:
-        player_id: ID del jugador
-        nombre_jugador: Nombre del jugador
-        df_evo: DataFrame con datos históricos
     """
     if df_evo.empty or len(df_evo) < 2:
         st.info(f"📊 No hay suficientes datos históricos para {nombre_jugador}")
@@ -295,13 +389,6 @@ def mostrar_mapa_pca(
 ):
     """
     Renderiza mapa PCA con el jugador destacado
-    
-    Args:
-        player_id_seleccionado: ID del jugador a destacar
-        posicion: Posición
-        temporada: Temporada
-        nombre_jugador: Nombre del jugador
-        df_pca: DataFrame con datos para PCA
     """
     if df_pca.empty or len(df_pca) < 10:
         st.warning(f"⚠️ Insuficientes datos para PCA en {posicion} (temporada {temporada})")

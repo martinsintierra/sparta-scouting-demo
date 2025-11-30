@@ -160,7 +160,12 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
         
         # ========== STATS COMPARATIVAS ==========
         lang = get_language()
-        st.markdown(f"#### 📊 {t('comparative_stats') if lang == 'en' else 'Estadísticas por 90 minutos (vs Molde)')}")
+        if lang == 'en':
+            stats_header = "Comparative Stats per 90 minutes (vs Template)"
+        else:
+            stats_header = "Estadísticas por 90 minutos (vs Molde)"
+        
+        st.markdown(f"#### 📊 {stats_header}")
         
         col_stat1, col_stat2, col_stat3, col_stat4, col_stat5, col_stat6 = st.columns(6)
         
@@ -214,7 +219,8 @@ def mostrar_tarjeta_jugador_comparativa(jugador_detalle: pd.Series, molde: pd.Se
             )
         
         # ========== RADAR COMPARATIVO ==========
-        st.markdown(f"#### 🎯 {t('comparative_radar')}")
+        radar_title = t('comparative_radar') if lang == 'en' else "Radar Comparativo (Percentiles)"
+        st.markdown(f"#### 🎯 {radar_title}")
         
         categories = ['xG', 'xA', 'Pases Prog.', 'Dribbles', 'Recuperaciones']
         

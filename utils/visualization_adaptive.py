@@ -25,7 +25,27 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     # Mapeo de posiciones normalizadas
     pos_normalizada = posicion.lower()
     
-    if 'delantero' in pos_normalizada or 'forward' in pos_normalizada:
+
+    if 'arquero' in pos_normalizada or 'goalkeeper' in pos_normalizada or 'portero' in pos_normalizada or 'goleiro' in pos_normalizada:
+        return {
+            'primary': [
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_saves', '🧤 Atajadas', 'saves_p90'),
+                ('destino_saves_pct', '📊 % Ataj.', 'saves_pct'),
+                ('destino_clean_sheets', '🛡️ Valla Inv.', 'clean_sheets_pct'),
+                ('destino_sweeper', '🏃 Sweeper', 'sweeper_p90'),
+                ('destino_claims', '✊ Salidas', 'claims_p90')
+            ],
+            'radar': [
+                ('pct_saves', 'Saves' if lang == 'en' else 'Atajadas'),
+                ('pct_saves_pct', 'Save %' if lang == 'en' else '% Ataj.'),
+                ('pct_clean_sheets', 'Clean Sheets' if lang == 'en' else 'Vallas Inv.'),
+                ('pct_sweeper', 'Sweeper' if lang == 'en' else 'Sweeper'),
+                ('pct_rating', 'Rating' if lang == 'en' else 'Rating')
+            ]
+        }
+
+    elif 'delantero' in pos_normalizada or 'forward' in pos_normalizada:
         return {
             'primary': [
                 ('destino_rating', '⭐ Rating', 'rating_promedio'),

@@ -152,16 +152,7 @@ def obtener_similares(
 ) -> pd.DataFrame:
     """
     Obtiene jugadores similares para una temporada específica
-    
-    Args:
-        id_origen: ID del jugador origen
-        temp_origen: Temporada del jugador origen
-        temp_destino: Temporada destino (None = todas)
-        min_score: Score mínimo de similitud
-        _client: Cliente BigQuery
-    
-    Returns:
-        DataFrame con jugadores similares
+    ✅ ACTUALIZADO: Incluye métricas de arqueros
     """
     start_time = time.time()
     
@@ -179,6 +170,8 @@ def obtener_similares(
             v.edad_promedio as destino_edad, 
             v.valor_mercado as destino_valor,
             v.rating_promedio as destino_rating,
+            
+            -- Métricas generales
             v.goals_p90 as destino_goles,
             v.assists_p90 as destino_asistencias,
             v.xG_p90 as destino_xg,
@@ -187,19 +180,43 @@ def obtener_similares(
             v.dribbles_p90 as destino_dribbles,
             v.recoveries_p90 as destino_recoveries,
             v.aerial_won_p90 as destino_aereos,
+            v.tackles_p90 as destino_tackles,
+            v.interceptions_p90 as destino_interceptions,
+            
+            -- ✅ NUEVO: Métricas de arqueros
+            v.saves_p90 as destino_saves,
+            v.saves_pct as destino_saves_pct,
+            v.clean_sheets_pct as destino_clean_sheets,
+            v.sweeper_p90 as destino_sweeper,
+            v.sweeper_acc_pct as destino_sweeper_acc,
+            v.claims_p90 as destino_claims,
+            v.punches_p90 as destino_punches,
+            
+            -- Info adicional
             v.partidos_jugados as destino_partidos,
             v.total_minutos as destino_minutos,
             v.nacionalidad as destino_nacionalidad,
             v.altura as destino_altura,
             v.pie as destino_pie,
             v.contrato_vence as destino_contrato,
+            
+            -- Percentiles generales
             v.pct_xG as destino_pct_xg,
             v.pct_xA as destino_pct_xa,
             v.pct_prog_passes as destino_pct_prog,
             v.pct_dribbles as destino_pct_dribbles,
             v.pct_recoveries as destino_pct_recov,
             v.pct_aerial as destino_pct_aerial,
-            v.pct_rating as destino_pct_rating
+            v.pct_rating as destino_pct_rating,
+            v.pct_tackles as destino_pct_tackles,
+            v.pct_interceptions as destino_pct_interceptions,
+            
+            -- ✅ NUEVO: Percentiles de arqueros
+            v.pct_saves as destino_pct_saves,
+            v.pct_saves_pct as destino_pct_saves_pct,
+            v.pct_clean_sheets as destino_pct_clean_sheets,
+            v.pct_sweeper as destino_pct_sweeper
+            
         FROM `{PROJECT_ID}.{DATASET}.scouting_similitud_pro_v2` s
         JOIN `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo` v
           ON CAST(v.player_id AS STRING) = s.jugador_similar_id
@@ -306,26 +323,29 @@ def obtener_datos_pca(posicion: str, temporada: int, _client: bigquery.Client) -
 def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.Client) -> dict:
     """
     Obtiene percentiles del jugador molde para comparación en radar
-    
-    Args:
-        player_id: ID del jugador
-        temporada: Temporada
-        _client: Cliente BigQuery
-    
-    Returns:
-        Diccionario con percentiles
+    ✅ ACTUALIZADO: Incluye percentiles de arqueros
     """
     start_time = time.time()
     
     sql_percentiles = f"""
         SELECT 
+            -- Percentiles generales
             pct_xG,
             pct_xA,
             pct_prog_passes,
             pct_dribbles,
             pct_recoveries,
             pct_aerial,
-            pct_rating
+            pct_rating,
+            pct_tackles,
+            pct_interceptions,
+            
+            -- ✅ NUEVO: Percentiles de arqueros
+            pct_saves,
+            pct_saves_pct,
+            pct_clean_sheets,
+            pct_sweeper
+            
         FROM `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo`
         WHERE player_id = {player_id}
           AND temporada_anio = {temporada}
@@ -346,7 +366,14 @@ def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.
             'pct_dribbles': 0.5,
             'pct_recoveries': 0.5,
             'pct_aerial': 0.5,
-            'pct_rating': 0.5
+            'pct_rating': 0.5,
+            'pct_tackles': 0.5,
+            'pct_interceptions': 0.5,
+            # Arqueros
+            'pct_saves': 0.5,
+            'pct_saves_pct': 0.5,
+            'pct_clean_sheets': 0.5,
+            'pct_sweeper': 0.5
         }
     
     return df.iloc[0].to_dict()

@@ -212,6 +212,17 @@ TRANSLATIONS = {
         "recoveries": "Recuperaciones",
         "aerial_duels": "Aéreos",
         
+
+        # Métricas de arqueros
+        "saves": "Atajadas",
+        "saves_pct": "% Atajadas",
+        "clean_sheets": "Vallas Invictas",
+        "sweeper": "Sweeper",
+        "claims": "Salidas",
+        "punches": "Despejes de Puño",
+        "goalkeeper": "Arquero",
+
+
         # Mensajes comunes
         "loading": "Cargando...",
         "error": "Error",
@@ -444,6 +455,15 @@ TRANSLATIONS = {
         "recoveries": "Recoveries",
         "aerial_duels": "Aerial",
         
+        # Métricas de arqueros
+        "saves": "Saves",
+        "saves_pct": "Save %",
+        "clean_sheets": "Clean Sheets",
+        "sweeper": "Sweeper",
+        "claims": "Claims",
+        "punches": "Punches",
+        "goalkeeper": "Goalkeeper",
+
         # Common messages
         "loading": "Loading...",
         "error": "Error",

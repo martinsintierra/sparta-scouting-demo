@@ -1,9 +1,17 @@
 import streamlit as st
+import pandas as pd
 from utils.database import get_all_players_index, obtener_similares, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
-from utils.visualization import mostrar_tarjeta_jugador_comparativa
+from utils.visualization import mostrar_tarjeta_jugador_adaptativa
 from utils.logger import setup_logger, log_user_action
 from utils.i18n import language_selector, t, get_language
+from utils.filters import (
+    render_economic_filters_sidebar,
+    aplicar_filtros_economicos,
+    mostrar_resumen_filtrado,
+    calcular_proyeccion_mejorada,
+    mostrar_badge_proyeccion
+)
 
 logger = setup_logger(__name__)
 
@@ -31,9 +39,9 @@ if not client:
 with st.spinner(f"🔄 {t('loading')}..."):
     df_players_index = get_all_players_index(client)
 
-st.sidebar.success(f"✅ {t('index_loaded', num=len(df_players_index))}")
+st.sidebar.success(f"✅ Índice cargado: {len(df_players_index)} jugadores")
 
-# Sidebar - Búsqueda y filtros
+# ========== SIDEBAR - BÚSQUEDA Y FILTROS ==========
 st.sidebar.header(f"🔍 {t('search_config')}")
 
 nombre_buscar = st.sidebar.text_input(
@@ -61,6 +69,14 @@ with col_filtro2:
 
 st.sidebar.divider()
 
+# ========== FILTROS ECONÓMICOS (MODULAR) ==========
+config_filtros = render_economic_filters_sidebar(
+    default_max_value=50,
+    default_age_range=(16, 40),
+    default_young_prospects=False,
+    expanded=False
+)
+
 # Opciones avanzadas
 with st.sidebar.expander(f"⚙️ {t('advanced_options')}"):
     umbral_fuzzy = st.slider(
@@ -72,9 +88,12 @@ with st.sidebar.expander(f"⚙️ {t('advanced_options')}"):
         help=t("fuzzy_help")
     )
 
-# Búsqueda de jugadores
+st.sidebar.divider()
+
+# ========== BÚSQUEDA DE JUGADORES ==========
 if nombre_buscar:
     try:
+        # Búsqueda inicial
         df_search = buscar_jugadores_fuzzy(
             nombre_buscar, 
             temp_origen_filter, 
@@ -83,35 +102,71 @@ if nombre_buscar:
         )
         
         if not df_search.empty:
+            # APLICAR FILTROS ECONÓMICOS
+            df_search_original = df_search.copy()
+            df_search = aplicar_filtros_economicos(
+                df_search, 
+                config_filtros,
+                prefijo_columnas=""  # Búsqueda inicial no tiene prefijo
+            )
+            
+            # Mostrar resumen de filtrado
+            mostrar_resumen_filtrado(
+                total_original=len(df_search_original),
+                total_filtrado=len(df_search),
+                config_filtros=config_filtros
+            )
+            
+            if df_search.empty:
+                st.sidebar.warning(t('no_players_in_range'))
+                st.warning(t('adjust_filters'))
+                st.stop()
+            
             # Indicador de tipo de match
             if 'relevancia' in df_search.columns and df_search['relevancia'].iloc[0] < 100:
-                st.sidebar.success(t("results_found").format(len(df_search)) + f" ({t('fuzzy_match')})")
+                st.sidebar.success(
+                    f"✅ {len(df_search)} resultados ({t('fuzzy_match')})"
+                )
             else:
-                st.sidebar.success(t("results_found").format(len(df_search)) + f" ({t('exact_match')})")
+                st.sidebar.success(
+                    f"✅ {len(df_search)} resultados ({t('exact_match')})"
+                )
             
-            # Formatear labels
-            df_search['label'] = df_search.apply(
-                lambda x: format_player_label(x, include_relevancia=True), 
-                axis=1
-            )
+            # Formatear labels CON BADGE DE PROYECCIÓN
+            def format_label_with_projection(row):
+                proyeccion = calcular_proyeccion_mejorada(row)
+                label_base = format_player_label(row, include_relevancia=True)
+                
+                if proyeccion['delta_proyectado_pct'] > 15:
+                    return f"{proyeccion['emoji']} {label_base}"
+                return label_base
+            
+            df_search['label'] = df_search.apply(format_label_with_projection, axis=1)
             
             seleccion_label = st.sidebar.selectbox(
                 t("select_version"), 
                 df_search['label']
             )
             
-            # Recuperar datos
+            # Recuperar datos del jugador seleccionado
             row_origen = df_search[df_search['label'] == seleccion_label].iloc[0]
             id_origen = str(row_origen['player_id'])
             temp_origen = int(row_origen['temporada_anio'])
+            
+            # Mostrar badge de proyección en sidebar
+            proyeccion_seleccionado = calcular_proyeccion_mejorada(row_origen)
+            if proyeccion_seleccionado['delta_proyectado_pct'] > 10:
+                mostrar_badge_proyeccion(proyeccion_seleccionado, use_sidebar=True)
             
             log_user_action(logger, "jugador_seleccionado", {
                 "player_id": id_origen,
                 "nombre": row_origen['player'],
                 "temporada": temp_origen,
-                "language": get_language()
+                "language": get_language(),
+                "filtros": config_filtros
             })
             
+            # Obtener percentiles del molde
             percentiles_molde = obtener_percentiles_molde(
                 player_id=int(id_origen),
                 temporada=temp_origen,
@@ -122,15 +177,15 @@ if nombre_buscar:
             for key, value in percentiles_molde.items():
                 row_origen_enriquecido[key] = value
 
-            # Perfil del jugador seleccionado
+            # ========== PERFIL DEL JUGADOR MOLDE ==========
             st.divider()
             st.subheader(f"🎯 {t('mold_profile')}: {row_origen['player']}")
             
-            # Métricas principales
+            # Métricas principales (6 columnas)
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             
             with col1:
-                st.metric(f"⚽ {t('team')}", f"{row_origen['equipo_principal']}")
+                st.metric(f"⚽ {t('team')}", f"{row_origen['equipo_principal'][:15]}")
             with col2:
                 st.metric(f"📅 {t('season')}", f"{temp_origen}")
             with col3:
@@ -140,16 +195,16 @@ if nombre_buscar:
             with col5:
                 st.metric("🎯 xG/90", f"{row_origen['xG_p90']:.2f}")
             with col6:
-                st.metric(f"🏃 {t('matches')}", f"{row_origen['partidos_jugados']}")
+                st.metric(f"🃏 {t('matches')}", f"{int(row_origen['partidos_jugados'])}")
             
             # Info de búsqueda
-            lang = get_language()
-            if lang == 'es':
-                st.info(f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**")
-            else:
-                st.info(f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**")
+            st.info(
+                f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**"
+                if get_language() == 'es' else
+                f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**"
+            )
             
-            # Tabs de resultados
+            # ========== TABS DE RESULTADOS ==========
             st.divider()
             st.subheader(f"🔎 {t('similar_players')}")
             
@@ -159,12 +214,29 @@ if nombre_buscar:
                 f"📊 {t('tab_all_seasons')}"
             ])
             
-            # Función auxiliar para mostrar resultados
+            # ========== FUNCIÓN PARA MOSTRAR RESULTADOS EN CADA TAB ==========
             def mostrar_tab_temporada(temp_destino, key_suffix):
                 df_results = obtener_similares(id_origen, temp_origen, temp_destino, min_score, client)
                 
+                # APLICAR FILTROS ECONÓMICOS A RESULTADOS
                 if not df_results.empty:
-                    st.success(f"✅ {t('results_found').format(len(df_results))}")
+                    df_results_original = df_results.copy()
+                    
+                    df_results = aplicar_filtros_economicos(
+                        df_results,
+                        config_filtros,
+                        prefijo_columnas="destino_"  # Resultados tienen prefijo "destino_"
+                    )
+                    
+                    # Mostrar resumen si hubo filtrado
+                    if len(df_results) < len(df_results_original):
+                        st.info(
+                            f"🔎 {t('showing_filtered').format(len(df_results))} "
+                            f"(de {len(df_results_original)} totales antes de filtros)"
+                        )
+                
+                if not df_results.empty:
+                    st.success(f"✅ {len(df_results)} {t('similar_players').lower()}")
                     
                     # Distribución de scores
                     max_score = df_results['score_similitud'].max()
@@ -186,11 +258,25 @@ if nombre_buscar:
                             calidad = "Low" if get_language() == 'en' else "Bajo"
                         st.metric(f"✅ {t('quality')}", calidad)
                     
-                    # Selector
-                    jugadores_lista = [
-                        f"{row['destino_nombre']} ({row['destino_equipo']}) - {row['score_similitud']:.1f}% | Temp {int(row['temporada_similar'])}" 
-                        for _, row in df_results.iterrows()
-                    ]
+                    # Selector de jugador CON BADGES
+                    jugadores_lista = []
+                    for _, row in df_results.iterrows():
+                        proyeccion_similar = calcular_proyeccion_mejorada(row)
+                        
+                        label = (
+                            f"{row['destino_nombre']} ({row['destino_equipo'][:12]}) - "
+                            f"{row['score_similitud']:.1f}% | Temp {int(row['temporada_similar'])}"
+                        )
+                        
+                        # Agregar emoji de proyección si aplica
+                        if proyeccion_similar['delta_proyectado_pct'] > 15:
+                            label = f"{proyeccion_similar['emoji']} {label}"
+                        
+                        # Badge de oportunidad
+                        if proyeccion_similar.get('valor_oportunidad'):
+                            label = f"💰 {label}"
+                        
+                        jugadores_lista.append(label)
                     
                     jugador_seleccionado = st.selectbox(
                         t("view_details"),
@@ -201,14 +287,14 @@ if nombre_buscar:
                     idx = jugadores_lista.index(jugador_seleccionado)
                     jugador_detalle = df_results.iloc[idx]
                     
-                    # Mostrar tarjeta COMPARATIVA
-                    mostrar_tarjeta_jugador_comparativa(
+                    # Mostrar tarjeta ADAPTATIVA (con badge de proyección)
+                    mostrar_tarjeta_jugador_adaptativa(
                         jugador_detalle=jugador_detalle,
                         molde=row_origen_enriquecido,
                         unique_key=f"{key_suffix}_{idx}"
                     )
                     
-                    # Tabla resumen
+                    # Tabla resumen expandible
                     with st.expander(f"📋 {t('view_full_table')}"):
                         df_display = df_results[[
                             'destino_nombre', 'destino_equipo', 'posicion', 
@@ -217,16 +303,22 @@ if nombre_buscar:
                             'destino_partidos', 'destino_minutos'
                         ]].copy()
                         
+                        # Añadir columna de proyección
+                        df_display['proyeccion'] = df_results.apply(
+                            lambda x: calcular_proyeccion_mejorada(x)['descripcion'],
+                            axis=1
+                        )
+                        
                         # Traducir headers
                         if get_language() == 'en':
                             df_display.columns = [
                                 'Player', 'Team', 'Pos', 'Season', 'Match%', 'Age',
-                                'Rating', 'xG/90', 'xA/90', 'MP', 'Minutes'
+                                'Rating', 'xG/90', 'xA/90', 'MP', 'Minutes', 'Projection'
                             ]
                         else:
                             df_display.columns = [
                                 'Jugador', 'Equipo', 'Pos', 'Temp', 'Match%', 'Edad',
-                                'Rating', 'xG/90', 'xA/90', 'PJ', 'Minutos'
+                                'Rating', 'xG/90', 'xA/90', 'PJ', 'Minutos', 'Proyección'
                             ]
                         
                         st.dataframe(df_display, use_container_width=True, hide_index=True)
@@ -236,9 +328,10 @@ if nombre_buscar:
                     **{t('search_suggestions')}:**
                     - {t('reduce_min_similarity')}
                     - {t('try_another_season')}
-                    - {t('verify_position_data')}
+                    - {t('adjust_filters')}
                     """)
             
+            # Renderizar cada tab
             with tab_2025:
                 mostrar_tab_temporada(2025, "2025")
             
@@ -265,10 +358,25 @@ else:
         
         1. **Escribí** el nombre del jugador en la barra lateral
         2. **Seleccioná** la temporada y nivel de similitud deseado
-        3. **Explorá** los resultados en las diferentes tabs
-        4. **Analizá** los perfiles detallados con radares y métricas
+        3. **Aplicá filtros económicos** (opcional): valor máximo, rango de edad, jóvenes promesas
+        4. **Explorá** los resultados en las diferentes tabs
+        5. **Analizá** los perfiles detallados con radares y métricas
         
         La búsqueda es inteligente y tolerante a errores de tipeo.
+        
+        #### 🎯 Filtros Económicos
+        - **Valor máximo**: Filtra por valor de mercado
+        - **Rango de edad**: Define edad mínima y máxima
+        - **Jóvenes promesas**: Encuentra talentos sub-23 con alto rating
+        - **Vencimiento de contrato**: Encuentra jugadores con contrato por vencer
+        - **Nacionalidad**: Filtra por países específicos
+        
+        #### 💎 Badges de Proyección
+        Los jugadores con alto potencial de crecimiento aparecen con emojis:
+        - 💎 **Prospecto Elite** (sub-21, rating >7.2)
+        - 🌟 **Alto Potencial** (sub-21, rating >6.8)
+        - ⭐ **Estrella en Ascenso** (sub-23, rating >7.0)
+        - 💰 **OPORTUNIDAD** (bajo valor, alto rating)
         """)
     else:
         st.markdown("""
@@ -276,10 +384,25 @@ else:
         
         1. **Type** the player's name in the sidebar
         2. **Select** the season and desired similarity level
-        3. **Explore** the results in different tabs
-        4. **Analyze** detailed profiles with radars and metrics
+        3. **Apply economic filters** (optional): max value, age range, young prospects
+        4. **Explore** the results in different tabs
+        5. **Analyze** detailed profiles with radars and metrics
         
         The search is smart and typo-tolerant.
+        
+        #### 🎯 Economic Filters
+        - **Max value**: Filter by market value
+        - **Age range**: Set minimum and maximum age
+        - **Young prospects**: Find sub-23 talents with high rating
+        - **Contract expiration**: Find players with expiring contracts
+        - **Nationality**: Filter by specific countries
+        
+        #### 💎 Projection Badges
+        Players with high growth potential appear with emojis:
+        - 💎 **Elite Prospect** (sub-21, rating >7.2)
+        - 🌟 **High Potential** (sub-21, rating >6.8)
+        - ⭐ **Rising Star** (sub-23, rating >7.0)
+        - 💰 **OPPORTUNITY** (low value, high rating)
         """)
 
-logger.info(f"Buscar page rendered (lang: {get_language()})")
+logger.info(f"Buscar page rendered with filters (lang: {get_language()}, config: {config_filtros})")

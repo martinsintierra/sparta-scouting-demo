@@ -5,6 +5,10 @@ from utils.search import buscar_jugadores_fuzzy
 from utils.visualization import mostrar_mapa_pca
 from utils.logger import setup_logger
 from utils.i18n import language_selector, t, get_language
+from utils.filters import (
+    render_economic_filters_sidebar,
+    aplicar_filtros_economicos
+)
 
 logger = setup_logger(__name__)
 
@@ -33,6 +37,15 @@ if not client:
 # Cargar índice
 with st.spinner(f"🔄 {t('loading')}..."):
     df_players_index = get_all_players_index(client)
+
+st.sidebar.divider()
+
+config_filtros = render_economic_filters_sidebar(
+    default_max_value=50,
+    default_age_range=(16, 40),
+    default_young_prospects=False,
+    expanded=False
+)
 
 # Sidebar - Configuración
 st.sidebar.header(f"🔍 {t('select_player')}")
@@ -65,6 +78,14 @@ if nombre_buscar:
         umbral_fuzzy
     )
     
+    if not df_search.empty:
+        # Aplicar filtros económicos a la búsqueda
+        df_search = aplicar_filtros_economicos(
+            df_search,
+            config_filtros,
+            prefijo_columnas=""
+        )
+
     if not df_search.empty:
         # Formatear labels
         from utils.search import format_player_label
@@ -101,6 +122,25 @@ if nombre_buscar:
         # Obtener datos PCA
         with st.spinner(f"🔄 {t('calculating_pca')}..."):
             df_pca = obtener_datos_pca(posicion, temporada_pca, client)
+
+        if not df_pca.empty:
+            # ✅ CORRECCIÓN: Solo aplicar filtro UNA vez
+            df_pca_original = df_pca.copy()
+            
+            df_pca = aplicar_filtros_economicos(
+                df_pca,
+                config_filtros,
+                prefijo_columnas=""
+            )
+            
+            # Mostrar resumen si hubo filtrado
+            if len(df_pca) < len(df_pca_original):
+                st.info(
+                    f"🔎 Mostrando {len(df_pca)} jugadores después de filtros "
+                    f"(de {len(df_pca_original)} totales en {posicion})"
+                )
+            else:
+                st.success(f"✅ {len(df_pca)} jugadores en {posicion} - Temp {temporada_pca}")
         
         if not df_pca.empty:
             # Mostrar mapa

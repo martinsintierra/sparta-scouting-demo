@@ -7,6 +7,11 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from .logger import setup_logger
 from .i18n import t, get_language
+from utils.visualization_adaptive import (
+    get_position_metrics,
+    mostrar_tarjeta_jugador_adaptativa
+)
+
 
 logger = setup_logger(__name__)
 

@@ -6,6 +6,14 @@ from utils.database import get_all_players_index, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
 from utils.logger import setup_logger
 from utils.i18n import language_selector, t, get_language
+from utils.filters import (
+    render_economic_filters_sidebar,
+    aplicar_filtros_economicos,
+    calcular_proyeccion_mejorada,
+    mostrar_badge_proyeccion
+)
+from utils.insights_adaptativos import generar_insights_comparacion
+
 
 logger = setup_logger(__name__)
 
@@ -33,6 +41,15 @@ with st.spinner(f"🔄 {t('loading')}..."):
     df_players_index = get_all_players_index(client)
 
 st.sidebar.success(f"✅ {len(df_players_index):,} {t('unique_players').lower()}")
+
+st.sidebar.divider()
+
+config_filtros = render_economic_filters_sidebar(
+    default_max_value=50,
+    default_age_range=(16, 40),
+    default_young_prospects=False,
+    expanded=False
+)
 
 # Sidebar - Configuración
 st.sidebar.header(t("select_players"))
@@ -68,6 +85,13 @@ for i in range(num_jugadores):
         )
         
         df_search = buscar_jugadores_fuzzy(nombre, temp, df_players_index, 70)
+
+        if not df_search.empty:
+            df_search = aplicar_filtros_economicos(
+                df_search,
+                config_filtros,
+                prefijo_columnas=""
+            )
         
         if not df_search.empty:
             df_search['label'] = df_search.apply(
@@ -99,6 +123,8 @@ for i in range(num_jugadores):
                 'xG': row['xG_p90'],
                 'goals': row['goals_p90'],
                 'partidos': int(row['partidos_jugados']),
+                'edad': row.get('edad_promedio', 99), 
+                'valor': row.get('valor_mercado', 0),
                 'percentiles': percentiles
             }
             
@@ -139,7 +165,21 @@ if len(jugadores_seleccionados) >= 2:
                 '⚽ Goals/90': f"{j['goals']:.2f}",
                 '🎯 xG/90': f"{j['xG']:.2f}",
                 '🏃 Matches': j['partidos']
+
             })
+            
+    for jugador in jugadores_seleccionados:
+        proyeccion = calcular_proyeccion_mejorada(
+            pd.Series({
+                'destino_edad': jugador.get('edad', 99),
+                'destino_rating': jugador['rating'],
+                'destino_valor': jugador.get('valor', 0),
+                'destino_partidos': jugador['partidos']
+            })
+        )
+        
+    if proyeccion['delta_proyectado_pct'] > 10:
+        st.info(f"{proyeccion['emoji']} {jugador['nombre']}: {proyeccion['descripcion']}")
     
     df_tabla = pd.DataFrame(tabla_data)
     st.dataframe(df_tabla, use_container_width=True, hide_index=True)
@@ -256,23 +296,30 @@ if len(jugadores_seleccionados) >= 2:
     # Insights automáticos
     st.markdown(f"### 💡 {t('automatic_insights')}")
     
-    # Jugador con mejor rating
-    mejor_rating = max(jugadores_seleccionados, key=lambda x: x['rating'])
-    st.info(f"🏆 **{t('best_rating')}:** {mejor_rating['nombre']} {t('with_rating')} {mejor_rating['rating']:.2f}")
-    
-    # Jugador más goleador
-    mejor_goleador = max(jugadores_seleccionados, key=lambda x: x['goals'])
-    if get_language() == 'es':
-        st.info(f"⚽ **{t('top_scorer')}:** {mejor_goleador['nombre']} con {mejor_goleador['goals']:.2f} goles/90")
-    else:
-        st.info(f"⚽ **{t('top_scorer')}:** {mejor_goleador['nombre']} with {mejor_goleador['goals']:.2f} goals/90")
-    
-    # Jugador con mejor xG
-    mejor_xg = max(jugadores_seleccionados, key=lambda x: x['xG'])
-    if get_language() == 'es':
-        st.info(f"🎯 **{t('best_xg')}:** {mejor_xg['nombre']} con {mejor_xg['xG']:.2f} xG/90")
-    else:
-        st.info(f"🎯 **{t('best_xg')}:** {mejor_xg['nombre']} with {mejor_xg['xG']:.2f} xG/90")
+    jugadores_data = []
+    for j in jugadores_seleccionados:
+        p = j['percentiles']
+        jugadores_data.append({
+            'nombre': j['nombre'],
+            'posicion': j['posicion'],
+            'rating': j['rating'],
+            'goals': j.get('goals', 0),
+            'xG': j['xG'],
+            'xA': j.get('xA', 0),
+            'prog_passes': j.get('prog_passes', 0),
+            'recoveries': j.get('recoveries', 0),
+            'pct_xG': p.get('pct_xG', 0.5),
+            'pct_xA': p.get('pct_xA', 0.5),
+            'pct_prog_passes': p.get('pct_prog_passes', 0.5),
+            'pct_recoveries': p.get('pct_recoveries', 0.5)
+        })
+
+    # Generar insights
+    insights = generar_insights_comparacion(jugadores_data)
+
+    # Mostrar insights
+    for insight in insights:
+        st.success(insight)
 
 else:
     st.info(t("search_2_players"))

@@ -221,6 +221,28 @@ TRANSLATIONS = {
         "not_found": "No encontrado",
         "connection_error": "Error de conexión",
         "no_data": "Sin datos disponibles",
+
+        # Traducciones para insights balanceados
+        "best_overall_rating": "Mejor Rating General",
+        "top_scorer": "Más Goleador",
+        "best_xg_quality": "Mejor xG (Calidad de Chances)",
+        "best_progression": "Mejor Progresión",
+        "most_creative": "Más Creativo (xA)",
+        "best_ball_winner": "Mejor Recuperador",
+        "aerial_dominance": "Dominio Aéreo",
+        "most_complete": "Más Completo",
+        "comparison_tip": "Comparando posiciones diferentes. Los insights son limitados.",
+        "offensive_defensive_balance": "Balance Ofensivo/Defensivo",
+        "pure_offensive": "Perfil Ofensivo Puro",
+        "pure_defensive": "Perfil Defensivo Puro",
+        "balanced_profile": "Perfil Balanceado",
+        "offensive_with_defense": "Ofensivo con capacidad defensiva",
+        "defensive_with_attack": "Defensivo con proyección ofensiva",
+        "percentile_in": "Percentil {} en {}",
+        "highest_avg_percentile": "Promedio de percentiles más alto",
+        "goals_per_90": "goles/90",
+        "progressive_passes": "pases progresivos",
+        "aerial_duels": "duelos aéreos",
     },
     
     "en": {
@@ -431,6 +453,28 @@ TRANSLATIONS = {
         "not_found": "Not found",
         "connection_error": "Connection error",
         "no_data": "No data available",
+    
+        # Translations for balanced insights
+        "best_overall_rating": "Best Overall Rating",
+        "top_scorer": "Top Scorer",
+        "best_xg_quality": "Best xG (Chance Quality)",
+        "best_progression": "Best Progression",
+        "most_creative": "Most Creative (xA)",
+        "best_ball_winner": "Best Ball Winner",
+        "aerial_dominance": "Aerial Dominance",
+        "most_complete": "Most Complete",
+        "comparison_tip": "Comparing different positions. Insights are limited.",
+        "offensive_defensive_balance": "Offensive/Defensive Balance",
+        "pure_offensive": "Pure Offensive Profile",
+        "pure_defensive": "Pure Defensive Profile",
+        "balanced_profile": "Balanced Profile",
+        "offensive_with_defense": "Offensive with defensive ability",
+        "defensive_with_attack": "Defensive with offensive projection",
+        "percentile_in": "Percentile {} in {}",
+        "highest_avg_percentile": "Highest average percentile",
+        "goals_per_90": "goals/90",
+        "progressive_passes": "progressive passes",
+        "aerial_duels": "aerial duels",
     }
 }
 

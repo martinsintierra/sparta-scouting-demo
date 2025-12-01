@@ -172,6 +172,7 @@ if __name__ == '__main__':
             SAFE_DIVIDE(sum_xA * 90, total_minutos) as xA_p90,
             SAFE_DIVIDE(sum_key_passes * 90, total_minutos) as key_passes_p90,
             SAFE_DIVIDE(sum_dribbles * 90, total_minutos) as dribbles_p90,
+            SAFE_DIVIDE(sum_shots_target * 90, total_minutos) as shots_target_p90,
             
             -- CONSTRUCCIÓN
             SAFE_DIVIDE(sum_prog_passes * 90, total_minutos) as prog_passes_p90,
@@ -269,6 +270,7 @@ if __name__ == '__main__':
         xA_p90,
         key_passes_p90,
         dribbles_p90,
+        shots_target_p90,
         prog_passes_p90,
         passes_p90,
         long_balls_p90,

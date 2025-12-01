@@ -83,7 +83,7 @@ FEATURE_SETS = {
     },
     'Delantero': {
         'primary': [
-            'xG_p90', 'xA_p90', 'goals_p90', 'shots_on_target',
+            'xG_p90', 'xA_p90', 'goals_p90', 'shots_target_p90',
             'dribbles_p90', 'key_passes_p90', 'aerial_won_p90',
             'rating_promedio'
         ],
@@ -91,7 +91,7 @@ FEATURE_SETS = {
             'xG_p90': 3.0,
             'xA_p90': 2.0,
             'goals_p90': 3.0,
-            'shots_on_target': 2.5,
+            'shots_target_p90': 2.5,
             'dribbles_p90': 2.0,
             'key_passes_p90': 1.5,
             'aerial_won_p90': 1.2,

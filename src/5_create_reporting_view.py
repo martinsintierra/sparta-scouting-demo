@@ -51,7 +51,24 @@ WITH BaseStats AS (
         pct_prog_passes,
         pct_dribbles,
         pct_recoveries,
-        pct_aerial
+        pct_aerial,
+
+        -- Arqueros - P90
+        saves_p90,
+        claims_p90,
+        punches_p90,
+        sweeper_p90,
+        
+        -- Arqueros - Porcentajes
+        saves_pct,
+        clean_sheets_pct,
+        sweeper_acc_pct,
+        
+        -- Percentiles arqueros
+        pct_saves,
+        pct_saves_pct,
+        pct_clean_sheets,
+        pct_sweeper
         
     FROM `{PROJECT_ID}.{DM_DATASET}.stats_jugador_temporada_pro`
 ),
@@ -154,7 +171,20 @@ SELECT
     proy.delta_proyectado_pct,
     
     -- Similares (Array)
-    sim.similares_top5
+    sim.similares_top5,
+
+    -- Arqueros
+    bs.saves_p90,
+    bs.saves_pct,
+    bs.clean_sheets_pct,
+    bs.sweeper_p90,
+    bs.sweeper_acc_pct,
+    bs.claims_p90,
+    bs.punches_p90,
+    bs.pct_saves,
+    bs.pct_saves_pct,
+    bs.pct_clean_sheets,
+    bs.pct_sweeper
 
 FROM BaseStats bs
 LEFT JOIN Arquetipos arq 

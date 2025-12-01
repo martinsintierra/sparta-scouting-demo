@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from utils.database import get_all_players_index, obtener_similares, obtener_percentiles_molde
 from utils.search import buscar_jugadores_fuzzy, format_player_label
-from utils.visualization import mostrar_tarjeta_jugador_adaptativa
+from utils.visualization_adaptive import mostrar_tarjeta_jugador_adaptativa
 from utils.logger import setup_logger, log_user_action
 from utils.i18n import language_selector, t, get_language
 from utils.filters import (
@@ -177,11 +177,17 @@ if nombre_buscar:
             for key, value in percentiles_molde.items():
                 row_origen_enriquecido[key] = value
 
-            # ========== PERFIL DEL JUGADOR MOLDE ==========
+            # ========== PERFIL DEL JUGADOR MOLDE (ADAPTATIVO) ==========
             st.divider()
             st.subheader(f"🎯 {t('mold_profile')}: {row_origen['player']}")
             
-            # Métricas principales (6 columnas)
+            # ✅ NUEVO: Importar configuración adaptativa
+            from utils.visualization_adaptive import get_position_metrics
+            
+            posicion_molde = row_origen['posicion']
+            config_molde = get_position_metrics(posicion_molde)
+            
+            # Métricas generales (siempre se muestran)
             col1, col2, col3, col4, col5, col6 = st.columns(6)
             
             with col1:
@@ -189,13 +195,26 @@ if nombre_buscar:
             with col2:
                 st.metric(f"📅 {t('season')}", f"{temp_origen}")
             with col3:
-                st.metric(f"📊 {t('position')}", f"{row_origen['posicion']}")
+                st.metric(f"📊 {t('position')}", f"{posicion_molde}")
             with col4:
                 st.metric(f"⭐ {t('rating')}", f"{row_origen['rating_promedio']:.2f}")
             with col5:
-                st.metric("🎯 xG/90", f"{row_origen['xG_p90']:.2f}")
+                st.metric("🏃 Partidos", f"{int(row_origen['partidos_jugados'])}")
             with col6:
-                st.metric(f"🃏 {t('matches')}", f"{int(row_origen['partidos_jugados'])}")
+                st.metric("⏱️ Minutos", f"{int(row_origen.get('total_minutos', 0))}")
+            
+            # ✅ NUEVO: Mostrar stats ESPECÍFICAS de la posición
+            st.markdown(f"#### 📊 Métricas Clave - {posicion_molde}")
+            
+            cols_stats = st.columns(6)
+            
+            for idx, (col_nombre, emoji_label, col_molde_key) in enumerate(config_molde['primary']):
+                with cols_stats[idx]:
+                    valor = row_origen.get(col_molde_key, 0)
+                    if pd.notna(valor):
+                        st.metric(emoji_label, f"{valor:.2f}")
+                    else:
+                        st.metric(emoji_label, "N/A")
             
             # Info de búsqueda
             st.info(
@@ -287,39 +306,57 @@ if nombre_buscar:
                     idx = jugadores_lista.index(jugador_seleccionado)
                     jugador_detalle = df_results.iloc[idx]
                     
-                    # Mostrar tarjeta ADAPTATIVA (con badge de proyección)
+                    # ✅ CAMBIO CRÍTICO: Usar tarjeta ADAPTATIVA
                     mostrar_tarjeta_jugador_adaptativa(
                         jugador_detalle=jugador_detalle,
                         molde=row_origen_enriquecido,
                         unique_key=f"{key_suffix}_{idx}"
                     )
                     
-                    # Tabla resumen expandible
+                    # ✅ NUEVO: Tabla resumen expandible CON MÁS COLUMNAS
                     with st.expander(f"📋 {t('view_full_table')}"):
-                        df_display = df_results[[
-                            'destino_nombre', 'destino_equipo', 'posicion', 
-                            'temporada_similar', 'score_similitud', 'destino_edad',
-                            'destino_rating', 'destino_xg', 'destino_xa', 
-                            'destino_partidos', 'destino_minutos'
-                        ]].copy()
+                        # Determinar columnas según posición
+                        if 'arquero' in posicion_molde.lower() or 'goalkeeper' in posicion_molde.lower():
+                            columnas_tabla = [
+                                'destino_nombre', 'destino_equipo', 'posicion', 
+                                'temporada_similar', 'score_similitud', 'destino_edad',
+                                'destino_rating', 'destino_saves', 'destino_saves_pct',
+                                'destino_clean_sheets', 'destino_partidos', 'destino_minutos'
+                            ]
+                        elif 'delantero' in posicion_molde.lower() or 'forward' in posicion_molde.lower():
+                            columnas_tabla = [
+                                'destino_nombre', 'destino_equipo', 'posicion', 
+                                'temporada_similar', 'score_similitud', 'destino_edad',
+                                'destino_rating', 'destino_goles', 'destino_xg', 
+                                'destino_asistencias', 'destino_xa', 'destino_dribbles',
+                                'destino_partidos', 'destino_minutos'
+                            ]
+                        elif 'medio' in posicion_molde.lower():
+                            columnas_tabla = [
+                                'destino_nombre', 'destino_equipo', 'posicion', 
+                                'temporada_similar', 'score_similitud', 'destino_edad',
+                                'destino_rating', 'destino_prog_passes', 'destino_xa',
+                                'destino_recoveries', 'destino_dribbles',
+                                'destino_partidos', 'destino_minutos'
+                            ]
+                        else:  # Defensores
+                            columnas_tabla = [
+                                'destino_nombre', 'destino_equipo', 'posicion', 
+                                'temporada_similar', 'score_similitud', 'destino_edad',
+                                'destino_rating', 'destino_recoveries', 'destino_aereos',
+                                'destino_tackles', 'destino_interceptions',
+                                'destino_partidos', 'destino_minutos'
+                            ]
+                        
+                        # Filtrar solo columnas que existen
+                        columnas_existentes = [col for col in columnas_tabla if col in df_results.columns]
+                        df_display = df_results[columnas_existentes].copy()
                         
                         # Añadir columna de proyección
                         df_display['proyeccion'] = df_results.apply(
                             lambda x: calcular_proyeccion_mejorada(x)['descripcion'],
                             axis=1
                         )
-                        
-                        # Traducir headers
-                        if get_language() == 'en':
-                            df_display.columns = [
-                                'Player', 'Team', 'Pos', 'Season', 'Match%', 'Age',
-                                'Rating', 'xG/90', 'xA/90', 'MP', 'Minutes', 'Projection'
-                            ]
-                        else:
-                            df_display.columns = [
-                                'Jugador', 'Equipo', 'Pos', 'Temp', 'Match%', 'Edad',
-                                'Rating', 'xG/90', 'xA/90', 'PJ', 'Minutos', 'Proyección'
-                            ]
                         
                         st.dataframe(df_display, use_container_width=True, hide_index=True)
                 else:
@@ -360,16 +397,29 @@ else:
         2. **Seleccioná** la temporada y nivel de similitud deseado
         3. **Aplicá filtros económicos** (opcional): valor máximo, rango de edad, jóvenes promesas
         4. **Explorá** los resultados en las diferentes tabs
-        5. **Analizá** los perfiles detallados con radares y métricas
+        5. **Analizá** los perfiles detallados con radares y métricas **adaptadas a cada posición**
         
         La búsqueda es inteligente y tolerante a errores de tipeo.
         
-        #### 🎯 Filtros Económicos
-        - **Valor máximo**: Filtra por valor de mercado
-        - **Rango de edad**: Define edad mínima y máxima
-        - **Jóvenes promesas**: Encuentra talentos sub-23 con alto rating
-        - **Vencimiento de contrato**: Encuentra jugadores con contrato por vencer
-        - **Nacionalidad**: Filtra por países específicos
+        #### 🎯 Sistema Adaptativo por Posición
+        
+        Las métricas que se muestran varían según la posición:
+        
+        **⚽ Delanteros:**
+        - Métricas ofensivas: Goles, xG, xA, Asistencias, Dribbles
+        - Radar: xG, xA, Dribbles, Pases Prog., Aéreos, Rating
+        
+        **🎯 Mediocampistas:**
+        - Balance ofensivo/defensivo: Pases Prog., xA, Recuperaciones, Dribbles
+        - Radar: Pases Prog., xA, Dribbles, Recuperaciones, xG, Rating
+        
+        **🛡️ Defensores:**
+        - Métricas defensivas: Recuperaciones, Aéreos, Tackles, Intercepciones
+        - Radar: Aéreos, Recuperaciones, Tackles, Intercepciones, Pases Prog., Rating
+        
+        **🧤 Arqueros:**
+        - Métricas específicas: Atajadas, % Atajadas, Vallas Invictas, Sweeper, Salidas
+        - Radar: Saves, Save %, Clean Sheets, Sweeper, Rating
         
         #### 💎 Badges de Proyección
         Los jugadores con alto potencial de crecimiento aparecen con emojis:
@@ -386,16 +436,29 @@ else:
         2. **Select** the season and desired similarity level
         3. **Apply economic filters** (optional): max value, age range, young prospects
         4. **Explore** the results in different tabs
-        5. **Analyze** detailed profiles with radars and metrics
+        5. **Analyze** detailed profiles with radars and metrics **adapted to each position**
         
         The search is smart and typo-tolerant.
         
-        #### 🎯 Economic Filters
-        - **Max value**: Filter by market value
-        - **Age range**: Set minimum and maximum age
-        - **Young prospects**: Find sub-23 talents with high rating
-        - **Contract expiration**: Find players with expiring contracts
-        - **Nationality**: Filter by specific countries
+        #### 🎯 Adaptive System by Position
+        
+        The metrics shown vary by position:
+        
+        **⚽ Forwards:**
+        - Offensive metrics: Goals, xG, xA, Assists, Dribbles
+        - Radar: xG, xA, Dribbles, Prog. Passes, Aerial, Rating
+        
+        **🎯 Midfielders:**
+        - Offensive/defensive balance: Prog. Passes, xA, Recoveries, Dribbles
+        - Radar: Prog. Passes, xA, Dribbles, Recoveries, xG, Rating
+        
+        **🛡️ Defenders:**
+        - Defensive metrics: Recoveries, Aerial, Tackles, Interceptions
+        - Radar: Aerial, Recoveries, Tackles, Interceptions, Prog. Passes, Rating
+        
+        **🧤 Goalkeepers:**
+        - Specific metrics: Saves, Save %, Clean Sheets, Sweeper, Claims
+        - Radar: Saves, Save %, Clean Sheets, Sweeper, Rating
         
         #### 💎 Projection Badges
         Players with high growth potential appear with emojis:
@@ -405,4 +468,4 @@ else:
         - 💰 **OPPORTUNITY** (low value, high rating)
         """)
 
-logger.info(f"Buscar page rendered with filters (lang: {get_language()}, config: {config_filtros})")
+logger.info(f"Buscar page rendered with adaptive metrics (lang: {get_language()}, config: {config_filtros})")

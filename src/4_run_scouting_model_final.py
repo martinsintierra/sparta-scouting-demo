@@ -1,6 +1,7 @@
 """
-MODELO ML COMPLETO - SCOUTING INTELIGENTE
+MODELO ML COMPLETO - SCOUTING INTELIGENTE CON ARQUEROS
 Unifica: Similitud KNN + Proyección Valor + Clustering Arquetipos
+ACTUALIZACIÓN: Incluye features específicas para cada posición
 """
 
 import pandas as pd
@@ -18,101 +19,149 @@ PROJECT_ID = "proyecto-scouting-futbol"
 DM_DATASET = "dm_scouting"
 SOURCE_TABLE = f"{PROJECT_ID}.{DM_DATASET}.stats_jugador_temporada_pro"
 
-# Tablas de salida
 DEST_SIMILITUD = f"{PROJECT_ID}.{DM_DATASET}.scouting_similitud_pro_v2"
 DEST_ARQUETIPOS = f"{PROJECT_ID}.{DM_DATASET}.arquetipos_jugadores"
 DEST_PROYECCIONES = f"{PROJECT_ID}.{DM_DATASET}.proyecciones_valor"
 
 # ============================================================================
-# PARTE 1: MODELO DE SIMILITUD (KNN) - Tu código original mejorado
+# CONFIGURACIÓN FEATURES POR POSICIÓN (INCLUYENDO ARQUEROS)
 # ============================================================================
 
-FEATURE_WEIGHTS = {
-    'Delantero': {
-        'xG_p90': 3.0, 'xA_p90': 2.0, 'shots_on_target': 2.5,
-        'dribbles_p90': 2.0, 'prog_passes_p90': 1.0, 'key_passes_p90': 1.5,
-        'recoveries_p90': 0.5, 'interceptions_p90': 0.3, 'tackles_p90': 0.3,
-        'aerial_won_p90': 1.2, 'rating_promedio': 1.5
-    },
-    'Mediocampista': {
-        'xG_p90': 1.5, 'xA_p90': 2.5, 'shots_on_target': 1.0,
-        'dribbles_p90': 2.0, 'prog_passes_p90': 3.0, 'key_passes_p90': 3.0,
-        'recoveries_p90': 2.5, 'interceptions_p90': 2.0, 'tackles_p90': 2.0,
-        'aerial_won_p90': 1.0, 'rating_promedio': 2.0
+FEATURE_SETS = {
+    'Arquero': {
+        'primary': [
+            'saves_p90', 'saves_pct', 'clean_sheets_pct',
+            'sweeper_p90', 'claims_p90', 'punches_p90',
+            'passes_p90', 'long_balls_p90', 'rating_promedio'
+        ],
+        'weights': {
+            'saves_p90': 3.0,
+            'saves_pct': 3.0,
+            'clean_sheets_pct': 2.5,
+            'sweeper_p90': 2.0,
+            'claims_p90': 2.0,
+            'punches_p90': 1.5,
+            'passes_p90': 1.0,
+            'long_balls_p90': 1.0,
+            'rating_promedio': 2.0
+        }
     },
     'Defensor': {
-        'xG_p90': 0.3, 'xA_p90': 0.5, 'shots_on_target': 0.3,
-        'dribbles_p90': 0.8, 'prog_passes_p90': 1.5, 'key_passes_p90': 0.8,
-        'recoveries_p90': 3.0, 'interceptions_p90': 3.0, 'tackles_p90': 3.0,
-        'aerial_won_p90': 2.5, 'rating_promedio': 2.0
+        'primary': [
+            'tackles_p90', 'interceptions_p90', 'clearances_p90',
+            'aerial_won_p90', 'blocks_p90', 'recoveries_p90',
+            'prog_passes_p90', 'rating_promedio'
+        ],
+        'weights': {
+            'tackles_p90': 3.0,
+            'interceptions_p90': 3.0,
+            'clearances_p90': 2.5,
+            'aerial_won_p90': 2.5,
+            'blocks_p90': 2.0,
+            'recoveries_p90': 2.5,
+            'prog_passes_p90': 1.5,
+            'rating_promedio': 2.0
+        }
+    },
+    'Mediocampista': {
+        'primary': [
+            'xG_p90', 'xA_p90', 'key_passes_p90', 'prog_passes_p90',
+            'dribbles_p90', 'recoveries_p90', 'tackles_p90',
+            'interceptions_p90', 'rating_promedio'
+        ],
+        'weights': {
+            'xG_p90': 1.5,
+            'xA_p90': 2.5,
+            'key_passes_p90': 3.0,
+            'prog_passes_p90': 3.0,
+            'dribbles_p90': 2.0,
+            'recoveries_p90': 2.5,
+            'tackles_p90': 2.0,
+            'interceptions_p90': 2.0,
+            'rating_promedio': 2.0
+        }
+    },
+    'Delantero': {
+        'primary': [
+            'xG_p90', 'xA_p90', 'goals_p90', 'shots_on_target',
+            'dribbles_p90', 'key_passes_p90', 'aerial_won_p90',
+            'rating_promedio'
+        ],
+        'weights': {
+            'xG_p90': 3.0,
+            'xA_p90': 2.0,
+            'goals_p90': 3.0,
+            'shots_on_target': 2.5,
+            'dribbles_p90': 2.0,
+            'key_passes_p90': 1.5,
+            'aerial_won_p90': 1.2,
+            'rating_promedio': 1.5
+        }
     }
 }
 
-FEATURES_SIMILITUD = [
-    'xG_p90', 'xA_p90', 'shots_on_target', 'prog_passes_p90', 'key_passes_p90',
-    'dribbles_p90', 'recoveries_p90', 'interceptions_p90', 'tackles_p90',
-    'aerial_won_p90', 'rating_promedio'
-]
+# ============================================================================
+# MODELO 1: SIMILITUD CON ARQUEROS
+# ============================================================================
 
-def calcular_similitudes(client: bigquery.Client) -> pd.DataFrame:
-    """MODELO 1: Similitud entre jugadores (KNN)"""
+def calcular_similitudes_por_posicion(client: bigquery.Client) -> pd.DataFrame:
+    """MODELO 1 MEJORADO: Similitud POR POSICIÓN con features específicas"""
     print("\n" + "="*70)
-    print("🧠 MODELO 1: SIMILITUD ENTRE JUGADORES (KNN)")
+    print("🧠 MODELO 1: SIMILITUD POR POSICIÓN (KNN ADAPTATIVO + ARQUEROS)")
     print("="*70)
     
-    # Cargar datos
-    query = f"""
-        SELECT 
-            player_id, player, temporada_anio, posicion,
-            equipo_principal, nacionalidad, edad_promedio,
-            valor_mercado, total_minutos, partidos_jugados,
-            xG_p90, xA_p90, 
-            sum_shots_target as shots_on_target,
-            prog_passes_p90, key_passes_p90, dribbles_p90,
-            recoveries_p90, interceptions_p90, tackles_p90, aerial_won_p90,
-            rating_promedio
-        FROM `{SOURCE_TABLE}`
-        WHERE total_minutos > 400 
-          AND posicion != 'Arquero'
-          AND rating_promedio > 6.0
-    """
-    
-    df = client.query(query).to_dataframe()
-    print(f"✓ {len(df)} perfiles cargados")
-    
-    # Aplicar pesos por posición
-    df_weighted = df.copy()
-    for feature in FEATURES_SIMILITUD:
-        df_weighted[feature] = df_weighted[feature].astype(float)
-    
-    for posicion, weights in FEATURE_WEIGHTS.items():
-        mask = df_weighted['posicion'] == posicion
-        for feature in FEATURES_SIMILITUD:
-            if feature in weights:
-                df_weighted.loc[mask, feature] *= weights[feature]
-    
-    # Calcular similitudes POR POSICIÓN
     all_results = []
     
-    for posicion in df['posicion'].unique():
-        df_pos = df_weighted[df_weighted['posicion'] == posicion].copy()
+    # ITERAR POR CADA POSICIÓN (incluyendo arqueros)
+    for posicion, config in FEATURE_SETS.items():
+        print(f"\n📍 Procesando: {posicion}")
+        
+        # Query específica por posición
+        features_str = ", ".join(config['primary'])
+        
+        # WHERE dinámico para features no nulos
+        where_conditions = [f"{feat} IS NOT NULL" for feat in config['primary']]
+        where_clause = " AND ".join(where_conditions)
+        
+        query = f"""
+            SELECT 
+                player_id, player, temporada_anio, posicion,
+                equipo_principal, nacionalidad, edad_promedio, 
+                valor_mercado, total_minutos, partidos_jugados,
+                {features_str}
+            FROM `{SOURCE_TABLE}`
+            WHERE posicion = '{posicion}'
+              AND total_minutos > 400
+              AND rating_promedio > 6.0
+              AND {where_clause}
+        """
+        
+        df_pos = client.query(query).to_dataframe()
         
         if len(df_pos) < 10:
+            print(f"   ⚠️ Pocos datos ({len(df_pos)}), saltando...")
             continue
         
-        print(f"  → {posicion}: {len(df_pos)} jugadores")
+        print(f"   ✓ {len(df_pos)} jugadores cargados")
         
+        # Aplicar pesos específicos
+        df_weighted = df_pos.copy()
+        for feature in config['primary']:
+            weight = config['weights'].get(feature, 1.0)
+            df_weighted[feature] = df_weighted[feature].astype(float) * weight
+        
+        # Normalizar
         scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(df_pos[FEATURES_SIMILITUD].fillna(0))
+        X_scaled = scaler.fit_transform(df_weighted[config['primary']].fillna(0))
         
+        # KNN
         n_neighbors = min(11, len(df_pos))
         knn = NearestNeighbors(n_neighbors=n_neighbors, algorithm='ball_tree')
         knn.fit(X_scaled)
         
         distances, indices = knn.kneighbors(X_scaled)
         
-        df_pos['unique_id'] = df_pos['player_id'].astype(str) + "_" + df_pos['temporada_anio'].astype(str)
-        
+        # Generar relaciones
         for i in range(len(df_pos)):
             source_row = df_pos.iloc[i]
             
@@ -141,22 +190,25 @@ def calcular_similitudes(client: bigquery.Client) -> pd.DataFrame:
                     'edad_similar': neighbor_row['edad_promedio'],
                     'equipo_similar': neighbor_row['equipo_principal']
                 })
+        
+        print(f"   ✓ {len([r for r in all_results if r['posicion'] == posicion])} relaciones generadas")
     
     df_similitudes = pd.DataFrame(all_results)
-    print(f"✓ {len(df_similitudes)} relaciones de similitud generadas")
+    
+    print(f"\n✅ TOTAL: {len(df_similitudes):,} relaciones de similitud")
+    for posicion in FEATURE_SETS.keys():
+        count = len(df_similitudes[df_similitudes['posicion'] == posicion])
+        print(f"   {posicion}: {count:,}")
     
     return df_similitudes
 
 # ============================================================================
-# PARTE 2: PROYECCIÓN DE VALOR DE MERCADO
+# MODELO 2: PROYECCIÓN DE VALOR (SIN CAMBIOS MAYORES)
 # ============================================================================
 
 FEATURES_VALOR = [
-    'edad_promedio', 'rating_promedio', 'xG_p90', 'xA_p90',
-    'goals_p90', 'assists_p90', 'prog_passes_p90', 'key_passes_p90',
-    'dribbles_p90', 'recoveries_p90', 'tackles_p90',
-    'total_minutos', 'partidos_jugados',
-    'pct_rating', 'pct_xG', 'pct_xA', 'pct_prog_passes'
+    'edad_promedio', 'rating_promedio', 'total_minutos', 'partidos_jugados',
+    'pct_rating'
 ]
 
 def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
@@ -165,16 +217,13 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     print("💰 MODELO 2: PROYECCIÓN DE VALOR DE MERCADO")
     print("="*70)
     
-    # Cargar datos históricos (evolución temporal)
+    # Query optimizada (features comunes a todas las posiciones)
     query = f"""
         WITH ValoresPorTemporada AS (
             SELECT
                 player_id, temporada_anio, player, posicion,
                 edad_promedio, valor_mercado, rating_promedio,
-                xG_p90, xA_p90, goals_p90, assists_p90,
-                prog_passes_p90, key_passes_p90, dribbles_p90,
-                recoveries_p90, tackles_p90, total_minutos, partidos_jugados,
-                pct_rating, pct_xG, pct_xA, pct_prog_passes
+                total_minutos, partidos_jugados, pct_rating
             FROM `{SOURCE_TABLE}`
             WHERE valor_mercado IS NOT NULL
               AND valor_mercado > 0
@@ -184,25 +233,17 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
             t1.player_id, t1.player, t1.posicion,
             t1.temporada_anio as temp_t1,
             t2.temporada_anio as temp_t2,
-            
-            -- Predictores (T1)
             t1.edad_promedio, t1.valor_mercado as valor_t1,
-            t1.rating_promedio, t1.xG_p90, t1.xA_p90,
-            t1.goals_p90, t1.assists_p90, t1.prog_passes_p90,
-            t1.key_passes_p90, t1.dribbles_p90, t1.recoveries_p90,
-            t1.tackles_p90, t1.total_minutos, t1.partidos_jugados,
-            t1.pct_rating, t1.pct_xG, t1.pct_xA, t1.pct_prog_passes,
-            
-            -- Target (T2)
+            t1.rating_promedio, t1.total_minutos, t1.partidos_jugados,
+            t1.pct_rating,
             t2.valor_mercado as valor_t2,
             ((t2.valor_mercado - t1.valor_mercado) / t1.valor_mercado) * 100 as delta_valor_pct
-            
         FROM ValoresPorTemporada t1
         INNER JOIN ValoresPorTemporada t2
             ON t1.player_id = t2.player_id
             AND t2.temporada_anio = t1.temporada_anio + 1
-        WHERE t1.edad_promedio <= 28
-          AND t1.valor_mercado >= 1000000
+        WHERE t1.edad_promedio <= 30
+          AND t1.valor_mercado >= 500000
     """
     
     df = client.query(query).to_dataframe()
@@ -226,16 +267,17 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     
     print(f"✓ Modelo entrenado | R² Train: {train_score:.3f} | R² Test: {test_score:.3f}")
     
-    # Generar proyecciones para todos los jugadores actuales
+    # Proyecciones actuales
     query_actual = f"""
         SELECT
             player_id, player, posicion, temporada_anio,
             equipo_principal, edad_promedio, valor_mercado,
-            {', '.join(FEATURES_VALOR)}
+            rating_promedio, total_minutos, partidos_jugados, pct_rating
         FROM `{SOURCE_TABLE}`
         WHERE temporada_anio = (SELECT MAX(temporada_anio) FROM `{SOURCE_TABLE}`)
-          AND edad_promedio <= 28
+          AND edad_promedio <= 30
           AND total_minutos >= 900
+          AND valor_mercado IS NOT NULL
     """
     
     df_actual = client.query(query_actual).to_dataframe()
@@ -254,121 +296,124 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     
     df_proyecciones['player_id'] = df_proyecciones['player_id'].astype(str)
     
-    print(f"✓ {len(df_proyecciones)} proyecciones generadas")
+    print(f"✓ {len(df_proyecciones)} proyecciones generadas (incluyendo arqueros)")
     
     return df_proyecciones, model, scaler
 
 # ============================================================================
-# PARTE 3: CLUSTERING DE ARQUETIPOS
+# MODELO 3: CLUSTERING POR POSICIÓN
 # ============================================================================
 
-FEATURES_CLUSTERING = [
-    'xG_p90', 'xA_p90', 'goals_p90', 'assists_p90', 'shots_on_target',
-    'key_passes_p90', 'dribbles_p90', 'prog_passes_p90',
-    'recoveries_p90', 'tackles_p90', 'interceptions_p90',
-    'aerial_won_p90', 'clearances_p90', 'rating_promedio'
-]
-
-def generar_arquetipos(client: bigquery.Client, n_clusters: int = 15) -> pd.DataFrame:
-    """MODELO 3: Clustering de Arquetipos"""
+def generar_arquetipos_por_posicion(client: bigquery.Client) -> pd.DataFrame:
+    """MODELO 3: Clustering de Arquetipos POR POSICIÓN"""
     print("\n" + "="*70)
-    print("🎨 MODELO 3: CLUSTERING DE ARQUETIPOS")
+    print("🎨 MODELO 3: CLUSTERING DE ARQUETIPOS POR POSICIÓN")
     print("="*70)
     
-    # Cargar datos actuales
-    query = f"""
-        SELECT
-            player_id, player, posicion, equipo_principal,
-            edad_promedio, valor_mercado, nacionalidad,
-            total_minutos, partidos_jugados, rating_promedio,
-            goals_p90, assists_p90, xG_p90, xA_p90,
-            sum_shots_target as shots_on_target,
-            dribbles_p90, key_passes_p90, prog_passes_p90,
-            recoveries_p90, tackles_p90, interceptions_p90,
-            aerial_won_p90, clearances_p90
-        FROM `{SOURCE_TABLE}`
-        WHERE temporada_anio = (SELECT MAX(temporada_anio) FROM `{SOURCE_TABLE}`)
-          AND posicion != 'Arquero'
-          AND total_minutos >= 900
-          AND rating_promedio >= 6.5
-    """
+    all_arquetipos = []
+    cluster_global_id = 0
     
-    df = client.query(query).to_dataframe()
-    print(f"✓ {len(df)} jugadores cargados para clustering")
-    
-    # Clustering
-    X = df[FEATURES_CLUSTERING].fillna(0)
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=20, max_iter=500)
-    df['cluster'] = kmeans.fit_predict(X_scaled)
-    
-    # Interpretar arquetipos
-    arquetipos_info = {}
-    
-    for cluster_id in sorted(df['cluster'].unique()):
-        cluster_data = df[df['cluster'] == cluster_id]
-        stats = cluster_data[FEATURES_CLUSTERING].mean()
+    for posicion, config in FEATURE_SETS.items():
+        print(f"\n📍 Clustering para: {posicion}")
         
-        # Clasificar arquetipo
-        score_ataque = stats[['xG_p90', 'xA_p90', 'goals_p90', 'assists_p90', 'shots_on_target', 'dribbles_p90']].mean()
-        score_construccion = stats[['prog_passes_p90', 'key_passes_p90']].mean()
-        score_defensa = stats[['recoveries_p90', 'tackles_p90', 'interceptions_p90', 'aerial_won_p90', 'clearances_p90']].mean()
+        features_str = ", ".join(config['primary'])
+        where_conditions = [f"{feat} IS NOT NULL" for feat in config['primary']]
+        where_clause = " AND ".join(where_conditions)
         
-        total = score_ataque + score_construccion + score_defensa
-        pct_ataque = score_ataque / total if total > 0 else 0
-        pct_defensa = score_defensa / total if total > 0 else 0
+        query = f"""
+            SELECT
+                player_id, player, posicion, equipo_principal,
+                edad_promedio, valor_mercado, nacionalidad,
+                total_minutos, partidos_jugados, rating_promedio,
+                {features_str}
+            FROM `{SOURCE_TABLE}`
+            WHERE temporada_anio = (SELECT MAX(temporada_anio) FROM `{SOURCE_TABLE}`)
+              AND posicion = '{posicion}'
+              AND total_minutos >= 900
+              AND rating_promedio >= 6.5
+              AND {where_clause}
+        """
         
-        # Asignar nombre
-        if pct_ataque > 0.45:
-            if stats['xG_p90'] > 0.5:
-                nombre, emoji = "Goleador Letal", "🎯"
-            elif stats['dribbles_p90'] > 2.0:
-                nombre, emoji = "Extremo Desequilibrante", "⚡"
-            else:
-                nombre, emoji = "Delantero Completo", "🦅"
-        elif 0.25 < pct_ataque < 0.45 and pct_defensa < 0.40:
-            if stats['xA_p90'] > 0.25:
-                nombre, emoji = "Mediapunta Creativo", "🎨"
-            elif stats['prog_passes_p90'] > 5.0:
-                nombre, emoji = "Organizador de Juego", "🧠"
-            else:
-                nombre, emoji = "Interior Box-to-Box", "🔄"
-        elif pct_defensa > 0.40 and score_construccion > 2.0:
-            nombre, emoji = "Pivote Conductor", "🎩"
-        elif pct_defensa > 0.50:
-            if stats['aerial_won_p90'] > 2.5:
-                nombre, emoji = "Defensor Aéreo", "🗼"
-            elif stats['tackles_p90'] > 2.5:
-                nombre, emoji = "Marcador Agresivo", "🔒"
-            else:
-                nombre, emoji = "Defensor Seguro", "🧱"
-        else:
-            nombre, emoji = "Jugador Balanceado", "⚖️"
+        df_pos = client.query(query).to_dataframe()
         
-        df.loc[df['cluster'] == cluster_id, 'arquetipo_nombre'] = f"{emoji} {nombre}"
+        if len(df_pos) < 15:
+            print(f"   ⚠️ Datos insuficientes ({len(df_pos)})")
+            continue
         
-        arquetipos_info[cluster_id] = {
-            'nombre': nombre,
-            'emoji': emoji,
-            'n_jugadores': len(cluster_data)
-        }
+        print(f"   ✓ {len(df_pos)} jugadores")
+        
+        # Determinar número de clusters
+        n_clusters = min(5, max(3, len(df_pos) // 30))
+        
+        # Clustering
+        X = df_pos[config['primary']].fillna(0)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+        
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=20)
+        df_pos['cluster_local'] = kmeans.fit_predict(X_scaled)
+        df_pos['cluster_global'] = df_pos['cluster_local'] + cluster_global_id
+        
+        # Nombrar arquetipos según posición
+        for cluster_id in sorted(df_pos['cluster_local'].unique()):
+            mask = df_pos['cluster_local'] == cluster_id
+            stats = df_pos.loc[mask, config['primary']].mean()
+            
+            # Lógica de nombres por posición
+            if posicion == 'Arquero':
+                if stats['saves_pct'] > 70:
+                    nombre = "🧤 Muro Infranqueable"
+                elif stats['sweeper_p90'] > 1.5:
+                    nombre = "🏃 Arquero Líbero"
+                else:
+                    nombre = "✋ Guardameta Sólido"
+            
+            elif posicion == 'Defensor':
+                if stats['aerial_won_p90'] > 3.0:
+                    nombre = "🗼 Coloso Aéreo"
+                elif stats['tackles_p90'] > 3.0:
+                    nombre = "🔒 Marcador Férreo"
+                else:
+                    nombre = "🧱 Defensor Completo"
+            
+            elif posicion == 'Mediocampista':
+                if stats['key_passes_p90'] > 2.0:
+                    nombre = "🎨 Creador Puro"
+                elif stats['recoveries_p90'] > 7.0:
+                    nombre = "🎩 Pivote Recuperador"
+                else:
+                    nombre = "🔄 Box-to-Box"
+            
+            else:  # Delantero
+                if stats['xG_p90'] > 0.6:
+                    nombre = "🎯 Goleador Nato"
+                elif stats['dribbles_p90'] > 3.0:
+                    nombre = "⚡ Extremo Eléctrico"
+                else:
+                    nombre = "🦅 Ariete Completo"
+            
+            df_pos.loc[mask, 'arquetipo_nombre'] = nombre
+        
+        all_arquetipos.append(df_pos)
+        cluster_global_id += n_clusters
+        print(f"   ✓ {n_clusters} arquetipos creados")
     
-    print(f"✓ {n_clusters} arquetipos identificados")
-    for info in arquetipos_info.values():
-        print(f"  {info['emoji']} {info['nombre']}: {info['n_jugadores']} jugadores")
+    df_arquetipos = pd.concat(all_arquetipos, ignore_index=True)
     
-    df_arquetipos = df[['player_id', 'player', 'posicion', 'equipo_principal',
-                         'cluster', 'arquetipo_nombre', 'rating_promedio',
-                         'xG_p90', 'xA_p90', 'valor_mercado']].copy()
+    df_resultado = df_arquetipos[[
+        'player_id', 'player', 'posicion', 'equipo_principal',
+        'cluster_global', 'arquetipo_nombre', 'rating_promedio', 'valor_mercado'
+    ]].copy()
     
-    df_arquetipos['player_id'] = df_arquetipos['player_id'].astype(str)
+    df_resultado['player_id'] = df_resultado['player_id'].astype(str)
+    df_resultado.rename(columns={'cluster_global': 'cluster'}, inplace=True)
     
-    return df_arquetipos
+    print(f"\n✅ {len(df_resultado)} jugadores clasificados en arquetipos")
+    
+    return df_resultado
 
 # ============================================================================
-# FUNCIÓN PRINCIPAL: EJECUTA TODO
+# PIPELINE COMPLETO
 # ============================================================================
 
 def upload_to_bigquery(client: bigquery.Client, df: pd.DataFrame, dest_table: str, schema: list):
@@ -379,16 +424,16 @@ def upload_to_bigquery(client: bigquery.Client, df: pd.DataFrame, dest_table: st
     print(f"✅ Tabla actualizada: {dest_table}")
 
 def run_all_models():
-    """Pipeline completo: Similitud + Proyección + Clustering"""
+    """Pipeline completo incluyendo arqueros"""
     
     print("\n" + "🚀"*35)
-    print("      PIPELINE COMPLETO DE MODELOS ML - SCOUTING")
+    print("   PIPELINE ML COMPLETO - TODAS LAS POSICIONES")
     print("🚀"*35)
     
     client = bigquery.Client(project=PROJECT_ID)
     
-    # ============ MODELO 1: SIMILITUD ============
-    df_similitudes = calcular_similitudes(client)
+    # MODELO 1: SIMILITUD
+    df_similitudes = calcular_similitudes_por_posicion(client)
     
     schema_similitud = [
         bigquery.SchemaField("jugador_origen", "STRING"),
@@ -409,8 +454,8 @@ def run_all_models():
     
     upload_to_bigquery(client, df_similitudes, DEST_SIMILITUD, schema_similitud)
     
-    # ============ MODELO 2: PROYECCIÓN VALOR ============
-    df_proyecciones, model_valor, scaler_valor = entrenar_modelo_valor(client)
+    # MODELO 2: PROYECCIÓN
+    df_proyecciones, _, _ = entrenar_modelo_valor(client)
     
     schema_proyecciones = [
         bigquery.SchemaField("player_id", "STRING"),
@@ -426,8 +471,8 @@ def run_all_models():
     
     upload_to_bigquery(client, df_proyecciones, DEST_PROYECCIONES, schema_proyecciones)
     
-    # ============ MODELO 3: ARQUETIPOS ============
-    df_arquetipos = generar_arquetipos(client, n_clusters=15)
+    # MODELO 3: ARQUETIPOS
+    df_arquetipos = generar_arquetipos_por_posicion(client)
     
     schema_arquetipos = [
         bigquery.SchemaField("player_id", "STRING"),
@@ -437,23 +482,25 @@ def run_all_models():
         bigquery.SchemaField("cluster", "INTEGER"),
         bigquery.SchemaField("arquetipo_nombre", "STRING"),
         bigquery.SchemaField("rating_promedio", "FLOAT"),
-        bigquery.SchemaField("xG_p90", "FLOAT"),
-        bigquery.SchemaField("xA_p90", "FLOAT"),
         bigquery.SchemaField("valor_mercado", "FLOAT"),
     ]
     
     upload_to_bigquery(client, df_arquetipos, DEST_ARQUETIPOS, schema_arquetipos)
     
-    # ============ RESUMEN FINAL ============
+    # RESUMEN
     print("\n" + "✅"*35)
-    print("      PIPELINE COMPLETADO EXITOSAMENTE")
+    print("      PIPELINE COMPLETADO")
     print("✅"*35)
     print(f"\n📊 Resultados:")
-    print(f"   • Similitudes:   {len(df_similitudes):,} relaciones → {DEST_SIMILITUD}")
-    print(f"   • Proyecciones:  {len(df_proyecciones):,} jugadores → {DEST_PROYECCIONES}")
-    print(f"   • Arquetipos:    {len(df_arquetipos):,} jugadores en {df_arquetipos['cluster'].nunique()} clusters → {DEST_ARQUETIPOS}")
+    print(f"   • Similitudes:   {len(df_similitudes):,} relaciones")
+    print(f"   • Proyecciones:  {len(df_proyecciones):,} jugadores")
+    print(f"   • Arquetipos:    {len(df_arquetipos):,} jugadores")
     
-    print(f"\n💡 Próximo paso: Ejecutar 04_crear_vista_dashboard.py para consolidar todo en una vista")
+    # Desglose por posición
+    print(f"\n📍 Desglose Similitudes:")
+    for pos in FEATURE_SETS.keys():
+        count = len(df_similitudes[df_similitudes['posicion'] == pos])
+        print(f"   {pos}: {count:,}")
 
 if __name__ == '__main__':
     run_all_models()

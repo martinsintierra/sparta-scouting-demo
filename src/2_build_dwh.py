@@ -13,8 +13,8 @@ def create_dwh_table(client, sql, target_table_id):
         # 🔹 PARTICIONAMIENTO: Divide tabla por fecha
         time_partitioning=bigquery.TimePartitioning(
             type_=bigquery.TimePartitioningType.DAY,
-            field="fecha",  # Campo de tipo DATE o TIMESTAMP
-            expiration_ms=None  # None = sin expiración, o ej: 365 días
+            field="fecha",
+            expiration_ms=None
         ),
         
         # 🔹 CLUSTERING: Ordena datos dentro de cada partición
@@ -36,7 +36,6 @@ if __name__ == '__main__':
     client = bigquery.Client(project=PROJECT_ID)
     dwh_table_id = f"{PROJECT_ID}.{DWH_DATASET}.partidos_procesados_pro"
 
-    # SQL ACTUALIZADO (AGREGADO country -> nacionalidad)
     sql_partidos_procesados = f"""
         SELECT
             -- 1. CONTEXTO
@@ -62,7 +61,7 @@ if __name__ == '__main__':
             is_substitute,
             
             -- Datos Físicos y Económicos
-            country AS nacionalidad,         -- <--- CORRECCIÓN AQUÍ
+            country AS nacionalidad,
             height_cm as altura,
             age_at_match as edad_al_partido,
             market_value_euro as valor_mercado,
@@ -105,11 +104,24 @@ if __name__ == '__main__':
             
             -- Negativas
             COALESCE(possession_lost, 0) as perdidas_balon,
-            COALESCE(fouls_committed, 0) as faltas_cometidas
+            COALESCE(fouls_committed, 0) as faltas_cometidas,
+            COALESCE(errors_leading_to_shot, 0) as errors_leading_to_shot,
+            
+            -- ARQUEROS (AGREGADO)
+            COALESCE(gk_saves, 0) as gk_saves,
+            COALESCE(gk_saves_inside_box, 0) as gk_saves_inside_box,
+            COALESCE(gk_high_claims, 0) as gk_high_claims,
+            COALESCE(gk_crosses_not_claimed, 0) as gk_crosses_not_claimed,
+            COALESCE(gk_punches, 0) as gk_punches,
+            COALESCE(gk_sweeper_accurate, 0) as gk_sweeper_accurate,
+            COALESCE(gk_sweeper_total, 0) as gk_sweeper_total,
+            COALESCE(gk_penalty_save, 0) as gk_penalty_save
 
         FROM `{PROJECT_ID}.{RAW_DATASET}.jugadores_stats_raw`
         WHERE minutes_played > 0
     """
 
-    print(f"Iniciando transformación corregida hacia: {dwh_table_id}")
+    print(f"Iniciando transformación completa hacia: {dwh_table_id}")
+    print(f"  • Incluye métricas de arqueros")
+    print(f"  • Incluye stats negativas")
     create_dwh_table(client, sql_partidos_procesados, dwh_table_id)

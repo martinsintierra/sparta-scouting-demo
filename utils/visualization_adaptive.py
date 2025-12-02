@@ -1,6 +1,6 @@
 """
-Sistema de Visualización Adaptativo por Posición - CORREGIDO
-✅ Usa nombres de columnas reales de BigQuery (sin prefijo destino_)
+Sistema de Visualización Adaptativo por Posición
+Muestra métricas relevantes según el rol del jugador
 """
 
 import streamlit as st
@@ -14,12 +14,11 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     """
     Retorna métricas relevantes por posición
     
-    ✅ CORREGIDO: Usa nombres de columnas reales de BigQuery
-    
-    Estructura de tuplas:
-    - [0]: Nombre columna en jugador_similar (SIN prefijo destino_)
-    - [1]: Label con emoji para display
-    - [2]: Nombre columna en molde (para comparación)
+    Returns:
+        Dict con:
+        - 'primary': Métricas principales (6 columnas)
+        - 'radar': Métricas para radar chart (6-7 dimensiones)
+        - 'labels': Labels traducidos
     """
     lang = get_language()
     
@@ -30,12 +29,12 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     if 'arquero' in pos_normalizada or 'goalkeeper' in pos_normalizada or 'portero' in pos_normalizada or 'goleiro' in pos_normalizada:
         return {
             'primary': [
-                ('rating_promedio', '⭐ Rating', 'rating_promedio'),
-                ('saves_p90', '🧤 Atajadas', 'saves_p90'),
-                ('saves_pct', '📊 % Ataj.', 'saves_pct'),
-                ('clean_sheets_pct', '🛡️ Valla Inv.', 'clean_sheets_pct'),
-                ('sweeper_p90', '🏃 Sweeper', 'sweeper_p90'),
-                ('claims_p90', '✊ Salidas', 'claims_p90')
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_saves', '🧤 Atajadas', 'saves_p90'),
+                ('destino_saves_pct', '📊 % Ataj.', 'saves_pct'),
+                ('destino_clean_sheets', '🛡️ Valla Inv.', 'clean_sheets_pct'),
+                ('destino_sweeper', '🏃 Sweeper', 'sweeper_p90'),
+                ('destino_claims', '✊ Salidas', 'claims_p90')
             ],
             'radar': [
                 ('pct_saves', 'Saves' if lang == 'en' else 'Atajadas'),
@@ -49,12 +48,12 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     elif 'delantero' in pos_normalizada or 'forward' in pos_normalizada:
         return {
             'primary': [
-                ('rating_promedio', '⭐ Rating', 'rating_promedio'),
-                ('goals_p90', '⚽ Goles', 'goals_p90'),
-                ('xG_p90', '🎯 xG', 'xG_p90'),
-                ('assists_p90', '🅰️ Asist.', 'assists_p90'),
-                ('xA_p90', '📤 xA', 'xA_p90'),
-                ('dribbles_p90', '🎪 Dribbles', 'dribbles_p90')
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_goles', '⚽ Goles', 'goals_p90'),
+                ('destino_xg', '🎯 xG', 'xG_p90'),
+                ('destino_asistencias', '🅰️ Asist.', 'assists_p90'),
+                ('destino_xa', '📤 xA', 'xA_p90'),
+                ('destino_dribbles', '🎪 Dribbles', 'dribbles_p90')
             ],
             'radar': [
                 ('pct_xG', 'xG' if lang == 'en' else 'xG'),
@@ -69,12 +68,12 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     elif 'mediocampista' in pos_normalizada or 'midfielder' in pos_normalizada or 'medio' in pos_normalizada:
         return {
             'primary': [
-                ('rating_promedio', '⭐ Rating', 'rating_promedio'),
-                ('prog_passes_p90', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('xA_p90', '📤 xA', 'xA_p90'),
-                ('assists_p90', '🅰️ Asist.', 'assists_p90'),
-                ('recoveries_p90', '🔄 Recup.', 'recoveries_p90'),
-                ('dribbles_p90', '🎪 Dribbles', 'dribbles_p90')
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
+                ('destino_xa', '📤 xA', 'xA_p90'),
+                ('destino_asistencias', '🅰️ Asist.', 'assists_p90'),
+                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
+                ('destino_dribbles', '🎪 Dribbles', 'dribbles_p90')
             ],
             'radar': [
                 ('pct_prog_passes', 'Prog. Pass' if lang == 'en' else 'Pases Prog.'),
@@ -89,12 +88,12 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
     elif 'defensor' in pos_normalizada or 'defender' in pos_normalizada or 'defensa' in pos_normalizada:
         return {
             'primary': [
-                ('rating_promedio', '⭐ Rating', 'rating_promedio'),
-                ('recoveries_p90', '🔄 Recup.', 'recoveries_p90'),
-                ('aerial_won_p90', '✈️ Aéreos', 'aerial_won_p90'),
-                ('prog_passes_p90', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('tackles_p90', '🛡️ Tackles', 'tackles_p90'),
-                ('interceptions_p90', '🚧 Interc.', 'interceptions_p90')
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
+                ('destino_aereos', '✈️ Aéreos', 'aerial_won_p90'),
+                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
+                ('destino_tackles', '🛡️ Tackles', 'tackles_p90'),
+                ('destino_interceptions', '🚧 Interc.', 'interceptions_p90')
             ],
             'radar': [
                 ('pct_aerial', 'Aerial' if lang == 'en' else 'Aéreos'),
@@ -107,15 +106,15 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
         }
     
     else:
-        # Fallback genérico
+        # Fallback genérico (arquero, lateral, etc.)
         return {
             'primary': [
-                ('rating_promedio', '⭐ Rating', 'rating_promedio'),
-                ('recoveries_p90', '🔄 Recup.', 'recoveries_p90'),
-                ('prog_passes_p90', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('aerial_won_p90', '✈️ Aéreos', 'aerial_won_p90'),
-                ('xA_p90', '📤 xA', 'xA_p90'),
-                ('xG_p90', '🎯 xG', 'xG_p90')
+                ('destino_rating', '⭐ Rating', 'rating_promedio'),
+                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
+                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
+                ('destino_aereos', '✈️ Aéreos', 'aerial_won_p90'),
+                ('destino_xa', '📤 xA', 'xA_p90'),
+                ('destino_xg', '🎯 xG', 'xG_p90')
             ],
             'radar': [
                 ('pct_rating', 'Rating' if lang == 'en' else 'Rating'),
@@ -131,8 +130,6 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]
 def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Series, unique_key: str):
     """
     Renderiza tarjeta con métricas ADAPTADAS a la posición del jugador
-    
-    ✅ CORREGIDO: Busca columnas reales de BigQuery
     
     Args:
         jugador_detalle: Serie con datos del jugador similar
@@ -151,18 +148,11 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         col_header1, col_header2, col_header3 = st.columns([3, 1, 1])
         
         with col_header1:
-            # ✅ CORREGIDO: Nombre del jugador
-            nombre = jugador_detalle.get('nombre_jugador', jugador_detalle.get('jugador_similar', 'N/A'))
-            nombre_display = f"{proyeccion['emoji']} {nombre}" if proyeccion['emoji'] else nombre
+            nombre_display = f"{proyeccion['emoji']} {jugador_detalle['destino_nombre']}" if proyeccion['emoji'] else jugador_detalle['destino_nombre']
             st.markdown(f"### {nombre_display}")
-            
-            # ✅ CORREGIDO: Equipo y posición
-            equipo = jugador_detalle.get('equipo_principal', jugador_detalle.get('equipo_similar', 'N/A'))
-            posicion = jugador_detalle.get('posicion', 'N/A')
-            st.caption(f"{equipo} | {posicion}")
+            st.caption(f"{jugador_detalle['destino_equipo']} | {jugador_detalle['posicion']}")
         
         with col_header2:
-            score = jugador_detalle.get('score_similitud', 0)
             st.markdown(f"""
             <div style='
                 background: linear-gradient(135deg, #10b981 0%, #059669 100%);
@@ -173,13 +163,12 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
                 font-weight: bold;
                 box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
             '>
-                {score:.1f}% Match
+                {jugador_detalle['score_similitud']:.1f}% Match
             </div>
             """, unsafe_allow_html=True)
         
         with col_header3:
-            temporada = jugador_detalle.get('temporada_anio', jugador_detalle.get('temporada_similar', 2025))
-            st.caption(f"📅 Temp. {int(temporada)}")
+            st.caption(f"📅 Temp. {int(jugador_detalle['temporada_similar'])}")
         
         # ========== BADGE DE PROYECCIÓN ==========
         if proyeccion['delta_proyectado_pct'] > 10:
@@ -221,33 +210,27 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         col1, col2, col3, col4, col5, col6 = st.columns(6)
         
         with col1:
-            edad = jugador_detalle.get('edad_promedio', jugador_detalle.get('edad_similar', 0))
-            st.metric("🎂 Edad", f"{int(edad)}" if pd.notnull(edad) else "N/A")
-        
+            st.metric("🎂 Edad", f"{int(jugador_detalle['destino_edad'])}")
         with col2:
-            altura = jugador_detalle.get('altura', 0)
-            st.metric("📏 Altura", f"{altura:.0f} cm" if pd.notnull(altura) and altura > 0 else "N/A")
-        
+            altura = jugador_detalle.get('destino_altura')
+            st.metric("📏 Altura", f"{altura:.0f} cm" if pd.notnull(altura) else "N/A")
         with col3:
-            pie = jugador_detalle.get('pie', 'N/A')
+            pie = jugador_detalle.get('destino_pie')
             st.metric("🦶 Pie", pie if pd.notnull(pie) else "N/A")
-        
         with col4:
-            pais = jugador_detalle.get('nacionalidad', 'N/A')
-            st.metric("🌍 País", pais if pd.notnull(pais) else "N/A")
-        
+            st.metric("🌍 País", jugador_detalle.get('destino_nacionalidad', 'N/A'))
         with col5:
-            valor = jugador_detalle.get('valor_mercado', jugador_detalle.get('valor_mercado_similar', 0))
+            valor = jugador_detalle.get('destino_valor')
             if pd.notnull(valor) and valor > 0:
                 st.metric("💰 Valor", f"€{valor/1000:.0f}K")
             else:
                 st.metric("💰 Valor", "N/A")
-        
         with col6:
-            contrato = jugador_detalle.get('contrato_vence', 'N/A')
+            contrato = jugador_detalle.get('destino_contrato')
             st.metric("📄 Contrato", str(contrato)[:4] if pd.notnull(contrato) else "N/A")
         
         # ========== STATS ADAPTATIVAS POR POSICIÓN ==========
+        posicion = jugador_detalle['posicion']
         config = get_position_metrics(posicion)
         
         lang = get_language()
@@ -258,7 +241,7 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         
         st.markdown(f"#### {stats_header}")
         
-        # ✅ CORREGIDO: Usar nombres de columnas reales
+        # Mostrar métricas primarias dinámicamente
         cols_stats = st.columns(6)
         
         for idx, (col_nombre, emoji_label, col_molde) in enumerate(config['primary']):
@@ -274,10 +257,7 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
                         delta=f"{delta:+.2f}"
                     )
                 else:
-                    st.metric(
-                        emoji_label, 
-                        f"{valor_similar:.2f}" if pd.notnull(valor_similar) else "N/A"
-                    )
+                    st.metric(emoji_label, f"{valor_similar:.2f}" if pd.notnull(valor_similar) else "N/A")
         
         # ========== RADAR ADAPTATIVO ==========
         radar_title = t('comparative_radar') if lang == 'en' else "Radar Comparativo (Percentiles)"
@@ -290,8 +270,8 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         values_molde = []
         
         for col_pct, _ in config['radar']:
-            # ✅ CORREGIDO: Usar nombre de columna real
-            val_sim = jugador_detalle.get(col_pct, 0.5)
+            # Valor del jugador similar
+            val_sim = jugador_detalle.get(col_pct.replace('pct_', 'destino_pct_'), 0.5)
             if pd.isna(val_sim):
                 val_sim = 0.5
             values_similar.append(val_sim * 100)
@@ -309,7 +289,7 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
             r=values_molde,
             theta=categories,
             fill='toself',
-            name=f"{molde.get('player', 'Molde')}",
+            name=f"{molde['player']} (Molde)",
             line_color='rgba(150, 150, 150, 0.6)',
             fillcolor='rgba(150, 150, 150, 0.2)'
         ))
@@ -319,7 +299,7 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
             r=values_similar,
             theta=categories,
             fill='toself',
-            name=nombre,
+            name=jugador_detalle['destino_nombre'],
             line_color='#667eea',
             fillcolor='rgba(102, 126, 234, 0.3)'
         ))
@@ -347,28 +327,49 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         # ========== CONTEXTO ADICIONAL ==========
         col_ctx1, col_ctx2 = st.columns(2)
         with col_ctx1:
-            partidos = jugador_detalle.get('partidos_jugados', 0)
-            st.info(f"📈 Partidos: {int(partidos)}" if pd.notnull(partidos) else "📈 Partidos: N/A")
+            st.info(f"📈 Partidos: {int(jugador_detalle['destino_partidos'])}")
         with col_ctx2:
-            minutos = jugador_detalle.get('total_minutos', 0)
-            st.info(f"⏱️ Minutos: {int(minutos)}" if pd.notnull(minutos) else "⏱️ Minutos: N/A")
+            st.info(f"⏱️ Minutos: {int(jugador_detalle['destino_minutos'])}")
 
 
-# ========== DEBUGGING HELPER ==========
-def debug_columnas_disponibles(df: pd.DataFrame):
-    """Helper para verificar qué columnas tiene tu DataFrame"""
-    st.sidebar.markdown("### 🔍 Debug: Columnas disponibles")
-    st.sidebar.code("\n".join(sorted(df.columns)))
+# ========== EJEMPLO DE USO ==========
+if __name__ == "__main__":
+    st.title("Sistema de Métricas Adaptativas por Posición")
     
-    # Verificar columnas críticas
-    columnas_criticas = [
-        'rating_promedio', 'recoveries_p90', 'tackles_p90', 
-        'interceptions_p90', 'aerial_won_p90', 'prog_passes_p90'
-    ]
+    st.markdown("""
+    ### 🎯 Métricas mostradas según posición
     
-    st.sidebar.markdown("### ✅ Columnas críticas:")
-    for col in columnas_criticas:
-        if col in df.columns:
-            st.sidebar.success(f"✓ {col}")
-        else:
-            st.sidebar.error(f"✗ {col} FALTA")
+    **Delanteros:**
+    - Rating, Goles, xG, Asistencias, xA, Dribbles
+    - Radar: xG, xA, Dribbles, Pases Prog., Aéreos, Rating
+    
+    **Mediocampistas:**
+    - Rating, Pases Prog., xA, Asistencias, Recuperaciones, Dribbles
+    - Radar: Pases Prog., xA, Dribbles, Recuperaciones, xG, Rating
+    
+    **Defensores:**
+    - Rating, Recuperaciones, Aéreos, Pases Prog., Tackles, Intercepciones
+    - Radar: Aéreos, Recuperaciones, Tackles, Intercepciones, Pases Prog., Rating
+    
+    ### 📊 Ventajas del sistema adaptativo
+    
+    1. **Relevancia:** Muestra métricas importantes para cada rol
+    2. **Comparabilidad:** Solo compara jugadores en métricas que importan para su posición
+    3. **Aprovecha datos:** Usa todas las columnas disponibles en BigQuery
+    4. **Extensible:** Fácil agregar nuevas posiciones o métricas
+    """)
+    
+    # Ejemplo visual
+    posiciones = ['Delantero', 'Mediocampista', 'Defensor']
+    
+    for pos in posiciones:
+        with st.expander(f"📋 Ver configuración para {pos}"):
+            config = get_position_metrics(pos)
+            
+            st.markdown("**Métricas Primarias (6 columnas):**")
+            for col, label, _ in config['primary']:
+                st.write(f"- {label}: `{col}`")
+            
+            st.markdown("**Radar Chart (6 dimensiones):**")
+            for col, label in config['radar']:
+                st.write(f"- {label}: `{col}`")

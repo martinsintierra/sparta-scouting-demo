@@ -298,18 +298,12 @@ if __name__ == '__main__':
         -- ============================================
         -- PERCENTILES POR POSICIÓN
         -- ============================================
+        
+        -- GENERALES (todas las posiciones)
         PERCENT_RANK() OVER (
             PARTITION BY temporada_anio, posicion 
             ORDER BY rating_promedio
         ) as pct_rating,
-        
-        -- Ofensivos (excluir arqueros)
-        CASE WHEN posicion != 'Arquero' 
-            THEN PERCENT_RANK() OVER (
-                PARTITION BY temporada_anio, posicion 
-                ORDER BY xG_p90
-            ) 
-        END as pct_xG,
         
         PERCENT_RANK() OVER (
             PARTITION BY temporada_anio, posicion 
@@ -326,7 +320,6 @@ if __name__ == '__main__':
             ORDER BY dribbles_p90
         ) as pct_dribbles,
         
-        -- Defensivos (todas las posiciones)
         PERCENT_RANK() OVER (
             PARTITION BY temporada_anio, posicion 
             ORDER BY recoveries_p90
@@ -337,7 +330,40 @@ if __name__ == '__main__':
             ORDER BY aerial_won_p90
         ) as pct_aerial,
         
-        -- Arqueros específicos
+        -- OFENSIVOS (excluir arqueros - puede ser NULL)
+        CASE WHEN posicion != 'Arquero' 
+            THEN PERCENT_RANK() OVER (
+                PARTITION BY temporada_anio, posicion 
+                ORDER BY xG_p90
+            ) 
+        END as pct_xG,
+        
+        -- ============================================
+        -- ✅ DEFENSIVOS AGREGADOS (todas las posiciones)
+        -- ============================================
+        PERCENT_RANK() OVER (
+            PARTITION BY temporada_anio, posicion 
+            ORDER BY tackles_p90
+        ) as pct_tackles,
+        
+        PERCENT_RANK() OVER (
+            PARTITION BY temporada_anio, posicion 
+            ORDER BY interceptions_p90
+        ) as pct_interceptions,
+        
+        PERCENT_RANK() OVER (
+            PARTITION BY temporada_anio, posicion 
+            ORDER BY clearances_p90
+        ) as pct_clearances,
+        
+        PERCENT_RANK() OVER (
+            PARTITION BY temporada_anio, posicion 
+            ORDER BY blocks_p90
+        ) as pct_blocks,
+        
+        -- ============================================
+        -- ARQUEROS (solo posicion = 'Arquero')
+        -- ============================================
         CASE WHEN posicion = 'Arquero'
             THEN PERCENT_RANK() OVER (
                 PARTITION BY temporada_anio, posicion 
@@ -369,10 +395,21 @@ if __name__ == '__main__':
     FROM MetricsP90
     """
 
-    print(f"Generando Datamart PRO con features para todas las posiciones...")
+    print("="*70)
+    print("Generando Datamart PRO - VERSION COMPLETA")
+    print("="*70)
     create_datamart_table(client, sql_datamart, target_table)
+    
     print(f"\n✅ Datamart compatible con modelo ML")
-    print(f"   • Arqueros: saves_p90, saves_pct, clean_sheets_pct, sweeper_p90, claims_p90, punches_p90")
-    print(f"   • Defensores: tackles_p90, clearances_p90, aerial_won_p90, blocks_p90")
-    print(f"   • Mediocampistas: prog_passes_p90, key_passes_p90, recoveries_p90")
-    print(f"   • Delanteros: xG_p90, xA_p90, goals_p90, dribbles_p90")
+    print(f"\n📊 Features P90 por posición:")
+    print(f"   • Arqueros:        saves_p90, saves_pct, clean_sheets_pct, sweeper_p90, claims_p90, punches_p90")
+    print(f"   • Defensores:      tackles_p90, clearances_p90, aerial_won_p90, blocks_p90, interceptions_p90")
+    print(f"   • Mediocampistas:  prog_passes_p90, key_passes_p90, recoveries_p90")
+    print(f"   • Delanteros:      xG_p90, xA_p90, goals_p90, dribbles_p90")
+    
+    print(f"\n📈 Percentiles disponibles:")
+    print(f"   GENERALES (todas): pct_rating, pct_xA, pct_prog_passes, pct_dribbles, pct_recoveries, pct_aerial")
+    print(f"   OFENSIVOS:         pct_xG (excluye arqueros)")
+    print(f"   ✅ DEFENSIVOS:     pct_tackles, pct_interceptions, pct_clearances, pct_blocks")
+    print(f"   ARQUEROS:          pct_saves, pct_saves_pct, pct_clean_sheets, pct_sweeper")
+    print("="*70)

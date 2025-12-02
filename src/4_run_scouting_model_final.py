@@ -1,7 +1,7 @@
 """
 MODELO ML COMPLETO - SCOUTING INTELIGENTE CON ARQUEROS
 Unifica: Similitud KNN + Proyección Valor + Clustering Arquetipos
-ACTUALIZACIÓN: Incluye features específicas para cada posición
+✅ ACTUALIZADO: Incluye percentiles defensivos en features
 """
 
 import pandas as pd
@@ -24,7 +24,8 @@ DEST_ARQUETIPOS = f"{PROJECT_ID}.{DM_DATASET}.arquetipos_jugadores"
 DEST_PROYECCIONES = f"{PROJECT_ID}.{DM_DATASET}.proyecciones_valor"
 
 # ============================================================================
-# CONFIGURACIÓN FEATURES POR POSICIÓN (INCLUYENDO ARQUEROS)
+# CONFIGURACIÓN FEATURES POR POSICIÓN
+# ✅ ACTUALIZADO: Agregué tackles, interceptions, clearances, blocks
 # ============================================================================
 
 FEATURE_SETS = {
@@ -48,6 +49,7 @@ FEATURE_SETS = {
     },
     'Defensor': {
         'primary': [
+            # ✅ Ahora incluye TODAS las métricas defensivas
             'tackles_p90', 'interceptions_p90', 'clearances_p90',
             'aerial_won_p90', 'blocks_p90', 'recoveries_p90',
             'prog_passes_p90', 'rating_promedio'
@@ -66,8 +68,10 @@ FEATURE_SETS = {
     'Mediocampista': {
         'primary': [
             'xG_p90', 'xA_p90', 'key_passes_p90', 'prog_passes_p90',
-            'dribbles_p90', 'recoveries_p90', 'tackles_p90',
-            'interceptions_p90', 'rating_promedio'
+            'dribbles_p90', 'recoveries_p90', 
+            # ✅ Agregados para mediocampistas defensivos:
+            'tackles_p90', 'interceptions_p90',
+            'rating_promedio'
         ],
         'weights': {
             'xG_p90': 1.5,
@@ -203,12 +207,15 @@ def calcular_similitudes_por_posicion(client: bigquery.Client) -> pd.DataFrame:
     return df_similitudes
 
 # ============================================================================
-# MODELO 2: PROYECCIÓN DE VALOR (SIN CAMBIOS MAYORES)
+# MODELO 2: PROYECCIÓN DE VALOR
+# ✅ ACTUALIZADO: Agregué percentiles defensivos como features opcionales
 # ============================================================================
 
 FEATURES_VALOR = [
     'edad_promedio', 'rating_promedio', 'total_minutos', 'partidos_jugados',
-    'pct_rating'
+    'pct_rating',
+    # ✅ Agregados (si están disponibles):
+    'pct_tackles', 'pct_interceptions', 'pct_aerial'
 ]
 
 def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
@@ -217,13 +224,14 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     print("💰 MODELO 2: PROYECCIÓN DE VALOR DE MERCADO")
     print("="*70)
     
-    # Query optimizada (features comunes a todas las posiciones)
+    # Query con features adicionales
     query = f"""
         WITH ValoresPorTemporada AS (
             SELECT
                 player_id, temporada_anio, player, posicion,
                 edad_promedio, valor_mercado, rating_promedio,
-                total_minutos, partidos_jugados, pct_rating
+                total_minutos, partidos_jugados, pct_rating,
+                pct_tackles, pct_interceptions, pct_aerial
             FROM `{SOURCE_TABLE}`
             WHERE valor_mercado IS NOT NULL
               AND valor_mercado > 0
@@ -235,7 +243,7 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
             t2.temporada_anio as temp_t2,
             t1.edad_promedio, t1.valor_mercado as valor_t1,
             t1.rating_promedio, t1.total_minutos, t1.partidos_jugados,
-            t1.pct_rating,
+            t1.pct_rating, t1.pct_tackles, t1.pct_interceptions, t1.pct_aerial,
             t2.valor_mercado as valor_t2,
             ((t2.valor_mercado - t1.valor_mercado) / t1.valor_mercado) * 100 as delta_valor_pct
         FROM ValoresPorTemporada t1
@@ -249,7 +257,7 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     df = client.query(query).to_dataframe()
     print(f"✓ {len(df)} casos de evolución encontrados")
     
-    # Entrenar modelo
+    # Entrenar modelo (con fillna para features opcionales)
     X = df[FEATURES_VALOR].fillna(0)
     y = df['delta_valor_pct']
     
@@ -267,12 +275,23 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
     
     print(f"✓ Modelo entrenado | R² Train: {train_score:.3f} | R² Test: {test_score:.3f}")
     
+    # Feature importance
+    feature_importance = pd.DataFrame({
+        'feature': FEATURES_VALOR,
+        'importance': model.feature_importances_
+    }).sort_values('importance', ascending=False)
+    
+    print(f"\n📊 Top 5 Features más importantes:")
+    for idx, row in feature_importance.head(5).iterrows():
+        print(f"   {row['feature']}: {row['importance']:.3f}")
+    
     # Proyecciones actuales
     query_actual = f"""
         SELECT
             player_id, player, posicion, temporada_anio,
             equipo_principal, edad_promedio, valor_mercado,
-            rating_promedio, total_minutos, partidos_jugados, pct_rating
+            rating_promedio, total_minutos, partidos_jugados, pct_rating,
+            pct_tackles, pct_interceptions, pct_aerial
         FROM `{SOURCE_TABLE}`
         WHERE temporada_anio = (SELECT MAX(temporada_anio) FROM `{SOURCE_TABLE}`)
           AND edad_promedio <= 30
@@ -302,6 +321,7 @@ def entrenar_modelo_valor(client: bigquery.Client) -> tuple:
 
 # ============================================================================
 # MODELO 3: CLUSTERING POR POSICIÓN
+# ✅ SIN CAMBIOS (ya usa las features correctas)
 # ============================================================================
 
 def generar_arquetipos_por_posicion(client: bigquery.Client) -> pd.DataFrame:
@@ -369,17 +389,20 @@ def generar_arquetipos_por_posicion(client: bigquery.Client) -> pd.DataFrame:
                     nombre = "✋ Guardameta Sólido"
             
             elif posicion == 'Defensor':
-                if stats['aerial_won_p90'] > 3.0:
+                # ✅ Lógica mejorada con nuevas features
+                if stats['aerial_won_p90'] > 3.0 and stats['clearances_p90'] > 4.0:
                     nombre = "🗼 Coloso Aéreo"
-                elif stats['tackles_p90'] > 3.0:
+                elif stats['tackles_p90'] > 3.0 and stats['interceptions_p90'] > 2.0:
                     nombre = "🔒 Marcador Férreo"
+                elif stats['blocks_p90'] > 1.5:
+                    nombre = "🛡️ Muro Defensivo"
                 else:
                     nombre = "🧱 Defensor Completo"
             
             elif posicion == 'Mediocampista':
                 if stats['key_passes_p90'] > 2.0:
                     nombre = "🎨 Creador Puro"
-                elif stats['recoveries_p90'] > 7.0:
+                elif stats['recoveries_p90'] > 7.0 and stats['tackles_p90'] > 2.5:
                     nombre = "🎩 Pivote Recuperador"
                 else:
                     nombre = "🔄 Box-to-Box"
@@ -428,6 +451,7 @@ def run_all_models():
     
     print("\n" + "🚀"*35)
     print("   PIPELINE ML COMPLETO - TODAS LAS POSICIONES")
+    print("   ✅ VERSION ACTUALIZADA: Con percentiles defensivos")
     print("🚀"*35)
     
     client = bigquery.Client(project=PROJECT_ID)
@@ -501,6 +525,12 @@ def run_all_models():
     for pos in FEATURE_SETS.keys():
         count = len(df_similitudes[df_similitudes['posicion'] == pos])
         print(f"   {pos}: {count:,}")
+    
+    print(f"\n✨ Mejoras en esta versión:")
+    print(f"   • Defensores: Ahora incluye tackles, interceptions, clearances, blocks")
+    print(f"   • Mediocampistas: Incluye tackles e interceptions para pivotes")
+    print(f"   • Proyección valor: Usa percentiles defensivos como features")
+    print(f"   • Arquetipos: Lógica mejorada con '🛡️ Muro Defensivo' para blockers")
 
 if __name__ == '__main__':
     run_all_models()

@@ -1,6 +1,7 @@
 """
-VISTA UNIFICADA PARA DASHBOARD
+VISTA UNIFICADA PARA DASHBOARD - VERSION COMPLETA
 Consolida: Stats Base + Similitudes + Proyecciones + Arquetipos
+CORREGIDO: Incluye TODOS los percentiles disponibles
 """
 
 from google.cloud import bigquery
@@ -43,16 +44,28 @@ WITH BaseStats AS (
         interceptions_p90,
         aerial_won_p90,
         clearances_p90,
+        blocks_p90,
+        errors_p90,
+        dispossessed_p90,
         
-        -- Percentiles
+        -- Percentiles GENERALES (todas las posiciones)
         pct_rating,
-        pct_xG,
         pct_xA,
         pct_prog_passes,
         pct_dribbles,
         pct_recoveries,
         pct_aerial,
-
+        
+        -- Percentiles OFENSIVOS (excluye arqueros - puede ser NULL)
+        pct_xG,
+        
+        -- Percentiles DEFENSIVOS (todas las posiciones)
+        -- ✅ AGREGADOS EN DATAMART v2:
+        pct_tackles,
+        pct_interceptions,
+        pct_clearances,
+        pct_blocks,
+        
         -- Arqueros - P90
         saves_p90,
         claims_p90,
@@ -64,7 +77,7 @@ WITH BaseStats AS (
         clean_sheets_pct,
         sweeper_acc_pct,
         
-        -- Percentiles arqueros
+        -- Percentiles ARQUEROS (solo para posicion = 'Arquero')
         pct_saves,
         pct_saves_pct,
         pct_clean_sheets,
@@ -137,7 +150,9 @@ SELECT
     bs.total_minutos,
     bs.partidos_jugados,
     
-    -- Stats P90
+    -- =========================================
+    -- STATS P90 (VALORES ABSOLUTOS)
+    -- =========================================
     bs.rating_promedio,
     bs.goals_p90,
     bs.assists_p90,
@@ -151,36 +166,59 @@ SELECT
     bs.interceptions_p90,
     bs.aerial_won_p90,
     bs.clearances_p90,
+    bs.blocks_p90,
+    bs.errors_p90,
+    bs.dispossessed_p90,
     
-    -- Percentiles (para radar charts)
+    -- =========================================
+    -- PERCENTILES GENERALES (para radar charts)
+    -- =========================================
     bs.pct_rating,
-    bs.pct_xG,
+    bs.pct_xG,          -- NULL para arqueros
     bs.pct_xA,
     bs.pct_prog_passes,
     bs.pct_dribbles,
     bs.pct_recoveries,
     bs.pct_aerial,
     
-    -- Arquetipo
+    -- ⚠️ PERCENTILES DEFENSIVOS (AGREGADOS):
+    bs.pct_tackles,
+    bs.pct_interceptions,
+    bs.pct_clearances,
+    bs.pct_blocks,
+    
+    -- =========================================
+    -- ARQUETIPO
+    -- =========================================
     arq.arquetipo_id,
     arq.arquetipo_nombre,
     
-    -- Proyección de valor
+    -- =========================================
+    -- PROYECCIÓN DE VALOR
+    -- =========================================
     proy.valor_proyectado_1y,
     proy.valor_proyectado_1y / 1000000 as valor_proyectado_millones,
     proy.delta_proyectado_pct,
     
-    -- Similares (Array)
+    -- =========================================
+    -- SIMILARES (Array)
+    -- =========================================
     sim.similares_top5,
 
-    -- Arqueros
+    -- =========================================
+    -- ARQUEROS - STATS P90
+    -- =========================================
     bs.saves_p90,
-    bs.saves_pct,
-    bs.clean_sheets_pct,
-    bs.sweeper_p90,
-    bs.sweeper_acc_pct,
     bs.claims_p90,
     bs.punches_p90,
+    bs.sweeper_p90,
+    
+    -- ARQUEROS - PORCENTAJES
+    bs.saves_pct,
+    bs.clean_sheets_pct,
+    bs.sweeper_acc_pct,
+    
+    -- ARQUEROS - PERCENTILES
     bs.pct_saves,
     bs.pct_saves_pct,
     bs.pct_clean_sheets,
@@ -198,7 +236,7 @@ LEFT JOIN Similitudes sim
 
 def crear_vista():
     """Crea vista consolidada para el dashboard"""
-    print("🔨 Creando Vista Consolidada para Dashboard")
+    print("🔨 Creando Vista Consolidada para Dashboard (VERSION COMPLETA)")
     print("=" * 70)
     
     try:
@@ -212,7 +250,14 @@ def crear_vista():
             COUNT(DISTINCT arquetipo_nombre) as arquetipos_unicos,
             COUNT(DISTINCT posicion) as posiciones,
             AVG(ARRAY_LENGTH(similares_top5)) as avg_similares,
-            COUNT(valor_proyectado_millones) as jugadores_con_proyeccion
+            COUNT(valor_proyectado_millones) as jugadores_con_proyeccion,
+            
+            -- Verificar percentiles defensivos
+            COUNT(pct_tackles) as jugadores_con_pct_tackles,
+            COUNT(pct_interceptions) as jugadores_con_pct_interceptions,
+            COUNT(pct_clearances) as jugadores_con_pct_clearances,
+            COUNT(pct_blocks) as jugadores_con_pct_blocks
+            
         FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`
         WHERE temporada_anio = (
             SELECT MAX(temporada_anio) 
@@ -225,123 +270,83 @@ def crear_vista():
         
         print("✅ Vista creada exitosamente\n")
         print(f"📊 Estadísticas (última temporada):")
-        print(f"   • Total jugadores:        {stats.total_jugadores:,}")
-        print(f"   • Arquetipos únicos:      {stats.arquetipos_unicos}")
-        print(f"   • Posiciones:             {stats.posiciones}")
-        print(f"   • Similares promedio:     {stats.avg_similares:.1f}")
-        print(f"   • Con proyección valor:   {stats.jugadores_con_proyeccion:,}")
+        print(f"   • Total jugadores:         {stats.total_jugadores:,}")
+        print(f"   • Arquetipos únicos:       {stats.arquetipos_unicos}")
+        print(f"   • Posiciones:              {stats.posiciones}")
+        print(f"   • Similares promedio:      {stats.avg_similares:.1f}")
+        print(f"   • Con proyección valor:    {stats.jugadores_con_proyeccion:,}")
         
-        # Queries de ejemplo
+        print(f"\n✅ Percentiles Defensivos Verificados:")
+        print(f"   • pct_tackles:             {stats.jugadores_con_pct_tackles:,}")
+        print(f"   • pct_interceptions:       {stats.jugadores_con_pct_interceptions:,}")
+        print(f"   • pct_clearances:          {stats.jugadores_con_pct_clearances:,}")
+        print(f"   • pct_blocks:              {stats.jugadores_con_pct_blocks:,}")
+        
+        # Query de ejemplo con percentiles defensivos
         print(f"\n" + "="*70)
-        print("💡 QUERIES DE EJEMPLO PARA TU DASHBOARD")
+        print("💡 EJEMPLO: DEFENSORES TOP CON PERCENTILES COMPLETOS")
         print("="*70)
         
-        print(f"\n1️⃣  Búsqueda básica con todos los datos:")
-        print(f"""
-SELECT 
-    nombre_jugador,
-    posicion,
-    equipo_principal,
-    edad_promedio,
-    valor_millones,
-    rating_promedio,
-    xG_p90,
-    xA_p90,
-    arquetipo_nombre,
-    delta_proyectado_pct,
-    similares_top5[OFFSET(0)].nombre as similar_1,
-    similares_top5[OFFSET(0)].score_similitud as score_1
-FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`
-WHERE nombre_jugador LIKE '%Álvarez%'
-  AND temporada_anio = 2024;
-        """)
-        
-        print(f"\n2️⃣  Búsqueda multi-criterio (jóvenes con potencial):")
         print(f"""
 SELECT 
     nombre_jugador,
     equipo_principal,
     edad_promedio,
     valor_millones,
-    valor_proyectado_millones,
-    delta_proyectado_pct,
     rating_promedio,
+    
+    -- Stats P90
+    tackles_p90,
+    interceptions_p90,
+    clearances_p90,
+    blocks_p90,
+    aerial_won_p90,
+    
+    -- Percentiles (0-1, multiplicar x100 para %)
+    ROUND(pct_tackles * 100, 1) as tackles_percentil,
+    ROUND(pct_interceptions * 100, 1) as interceptions_percentil,
+    ROUND(pct_clearances * 100, 1) as clearances_percentil,
+    ROUND(pct_blocks * 100, 1) as blocks_percentil,
+    ROUND(pct_aerial * 100, 1) as aerial_percentil,
+    
     arquetipo_nombre
+    
 FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`
 WHERE temporada_anio = 2024
-  AND posicion = 'Delantero'
-  AND edad_promedio <= 25
-  AND valor_millones <= 20
-  AND delta_proyectado_pct > 10  -- Proyección de +10% revalorización
-  AND pct_xG >= 0.70              -- Top 30% en goles esperados
-ORDER BY delta_proyectado_pct DESC
-LIMIT 20;
-        """)
-        
-        print(f"\n3️⃣  Explorar arquetipos específicos:")
-        print(f"""
-SELECT 
-    nombre_jugador,
-    equipo_principal,
-    edad_promedio,
-    valor_millones,
-    rating_promedio,
-    xG_p90,
-    xA_p90
-FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`
-WHERE temporada_anio = 2024
-  AND arquetipo_nombre LIKE '%Goleador%'
-  AND valor_millones <= 30
+  AND posicion = 'Defensor'
+  AND total_minutos >= 1000
+  AND pct_tackles >= 0.75  -- Top 25% en tackles
+  AND pct_aerial >= 0.70   -- Top 30% en duelos aéreos
 ORDER BY rating_promedio DESC
 LIMIT 20;
         """)
         
-        print(f"\n4️⃣  Expandir similares (ver detalle de los 5 similares):")
-        print(f"""
-SELECT 
-    nombre_jugador,
-    similar.nombre as jugador_similar,
-    similar.equipo as equipo_similar,
-    similar.score_similitud,
-    similar.valor_millones as valor_similar,
-    similar.edad as edad_similar,
-    similar.rank_similitud
-FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`,
-UNNEST(similares_top5) as similar
-WHERE nombre_jugador LIKE '%Álvarez%'
-  AND temporada_anio = 2024
-ORDER BY similar.rank_similitud;
-        """)
-        
-        print(f"\n5️⃣  Top oportunidades por arquetipo y rango de precio:")
-        print(f"""
-WITH Rangos AS (
-    SELECT
-        arquetipo_nombre,
-        CASE 
-            WHEN valor_millones < 10 THEN 'Económico (<€10M)'
-            WHEN valor_millones < 30 THEN 'Medio (€10-30M)'
-            ELSE 'Premium (>€30M)'
-        END as rango_precio,
-        nombre_jugador,
-        equipo_principal,
-        valor_millones,
-        rating_promedio,
-        ROW_NUMBER() OVER (
-            PARTITION BY arquetipo_nombre,
-            CASE 
-                WHEN valor_millones < 10 THEN 'Económico (<€10M)'
-                WHEN valor_millones < 30 THEN 'Medio (€10-30M)'
-                ELSE 'Premium (>€30M)'
-            END
-            ORDER BY rating_promedio DESC
-        ) as rank
-    FROM `{PROJECT_ID}.{DM_DATASET}.v_dashboard_scouting_completo`
-    WHERE temporada_anio = 2024
-)
-SELECT * FROM Rangos
-WHERE rank = 1
-ORDER BY arquetipo_nombre, rango_precio;
+        print(f"\n" + "="*70)
+        print("📋 RESUMEN DE PERCENTILES DISPONIBLES:")
+        print("="*70)
+        print("""
+GENERALES (todas las posiciones):
+  • pct_rating
+  • pct_xA
+  • pct_prog_passes
+  • pct_dribbles
+  • pct_recoveries
+  • pct_aerial
+
+OFENSIVOS (excluye arqueros):
+  • pct_xG
+
+DEFENSIVOS (todas las posiciones):
+  • pct_tackles           ← ✅ AGREGADO
+  • pct_interceptions     ← ✅ AGREGADO
+  • pct_clearances        ← ✅ AGREGADO
+  • pct_blocks            ← ✅ AGREGADO
+
+ARQUEROS (solo posicion = 'Arquero'):
+  • pct_saves
+  • pct_saves_pct
+  • pct_clean_sheets
+  • pct_sweeper
         """)
         
         print(f"\n" + "="*70)

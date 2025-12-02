@@ -98,8 +98,28 @@ def get_all_players_index(_client: bigquery.Client) -> pd.DataFrame:
             rating_promedio, 
             goals_p90,
             xG_p90,
+            assists_p90,
+            xA_p90,
             partidos_jugados,
-            total_minutos
+            total_minutos,
+            
+            -- ✅ AGREGAR: Métricas defensivas
+            recoveries_p90,
+            tackles_p90,
+            interceptions_p90,
+            aerial_won_p90,
+            prog_passes_p90,
+            dribbles_p90,
+            
+            -- ✅ AGREGAR: Métricas de arqueros
+            saves_p90,
+            saves_pct,
+            clean_sheets_pct,
+            sweeper_p90,
+            claims_p90,
+            punches_p90,
+            sweeper_acc_pct
+            
         FROM `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo`
         WHERE total_minutos >= 300
         ORDER BY temporada_anio DESC, rating_promedio DESC

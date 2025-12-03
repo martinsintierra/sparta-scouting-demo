@@ -309,7 +309,7 @@ def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Ser
         # Mostrar métricas primarias dinámicamente
         cols_stats = st.columns(6)
         
-        for idx, (col_nombre, emoji_label, col_molde) in enumerate(config['primary']):
+        for idx, (col_nombre, emoji_label, col_molde) in enumerate(config['primary_comparison']):
             with cols_stats[idx]:
                 valor_similar = jugador_detalle.get(col_nombre, 0)
                 valor_molde = molde.get(col_molde, 0)

@@ -208,21 +208,19 @@ if nombre_buscar:
             
             cols_stats = st.columns(6)
             
-            for idx, (col_nombre, emoji_label, col_molde_key) in enumerate(config_molde['primary']):
+            for idx, (col_molde_key, emoji_label) in enumerate(config_molde['mold_metrics']):
                 with cols_stats[idx]:
                     if col_molde_key in row_origen.index:
                         valor = row_origen[col_molde_key]
                         
-                        # Convertir NaN/None a "N/A"
                         if pd.isna(valor):
                             st.metric(emoji_label, "N/A")
                         else:
-                            # Mostrar valor con 2 decimales
                             st.metric(emoji_label, f"{valor:.2f}")
                     else:
-                        # La columna no existe en el dataframe
                         st.metric(emoji_label, "N/A")
                         logger.warning(f"Columna '{col_molde_key}' no encontrada en row_origen para {row_origen['player']}")
+
             
             # Info de búsqueda
             st.info(

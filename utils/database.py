@@ -103,7 +103,6 @@ def get_all_players_index(_client: bigquery.Client) -> pd.DataFrame:
             partidos_jugados,
             total_minutos,
             
-            -- ✅ AGREGAR: Métricas defensivas
             recoveries_p90,
             tackles_p90,
             interceptions_p90,
@@ -111,7 +110,6 @@ def get_all_players_index(_client: bigquery.Client) -> pd.DataFrame:
             prog_passes_p90,
             dribbles_p90,
             
-            -- ✅ AGREGAR: Métricas de arqueros
             saves_p90,
             saves_pct,
             clean_sheets_pct,

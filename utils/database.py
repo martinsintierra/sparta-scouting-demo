@@ -340,14 +340,14 @@ def obtener_datos_pca(posicion: str, temporada: int, _client: bigquery.Client) -
 @st.cache_data(ttl=3600)
 def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.Client) -> dict:
     """
-    Obtiene percentiles del jugador molde para comparación en radar
-    ✅ ACTUALIZADO: Incluye percentiles de arqueros
+    Obtiene percentiles Y métricas crudas del jugador molde.
+    ACTUALIZADO: Trae datos raw para evitar N/A en la visualización.
     """
     start_time = time.time()
     
     sql_percentiles = f"""
         SELECT 
-            -- Percentiles generales
+            -- 1. Percentiles (Originales)
             pct_xG,
             pct_xA,
             pct_prog_passes,
@@ -358,12 +358,36 @@ def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.
             pct_tackles,
             pct_interceptions,
             
-            -- ✅ NUEVO: Percentiles de arqueros
+            -- Percentiles Arqueros
             pct_saves,
             pct_saves_pct,
             pct_clean_sheets,
-            pct_sweeper
+            pct_sweeper,
+
+            -- 2. DATOS CRUDOS (Agregados para hidratar el perfil)
+            -- Ofensivos / Creación
+            goals_p90,
+            xG_p90,
+            assists_p90,
+            xA_p90,
+            prog_passes_p90,
+            dribbles_p90,
             
+            -- Defensivos
+            recoveries_p90,
+            tackles_p90,
+            interceptions_p90,
+            aerial_won_p90,
+            
+            -- Arqueros Raw
+            saves_p90,
+            saves_pct,
+            clean_sheets_pct,
+            sweeper_p90,
+            claims_p90,
+            punches_p90,
+            sweeper_acc_pct
+
         FROM `{PROJECT_ID}.{DATASET}.v_dashboard_scouting_completo`
         WHERE player_id = {player_id}
           AND temporada_anio = {temporada}
@@ -373,27 +397,16 @@ def obtener_percentiles_molde(player_id: int, temporada: int, _client: bigquery.
     df = _client.query(sql_percentiles).to_dataframe()
     
     duration = time.time() - start_time
-    log_query_performance(logger, "obtener_percentiles_molde", duration, len(df))
+    log_query_performance(logger, "obtener_percentiles_molde_FULL", duration, len(df))
     
     if df.empty:
-        logger.warning(f"No se encontraron percentiles para player_id={player_id}, temp={temporada}")
-        return {
-            'pct_xG': 0.5,
-            'pct_xA': 0.5,
-            'pct_prog_passes': 0.5,
-            'pct_dribbles': 0.5,
-            'pct_recoveries': 0.5,
-            'pct_aerial': 0.5,
-            'pct_rating': 0.5,
-            'pct_tackles': 0.5,
-            'pct_interceptions': 0.5,
-            # Arqueros
-            'pct_saves': 0.5,
-            'pct_saves_pct': 0.5,
-            'pct_clean_sheets': 0.5,
-            'pct_sweeper': 0.5
-        }
+        logger.warning(f"No se encontraron datos para player_id={player_id}, temp={temporada}")
+        # Retornar dict vacio seguro para evitar crashes
+        return {}
     
+    # Convertimos a diccionario. 
+    # Al hacer esto, search.py fusionará estas métricas raw (ej: 'goals_p90': 0.5) 
+    # dentro de row_origen, arreglando los N/A.
     return df.iloc[0].to_dict()
 
 

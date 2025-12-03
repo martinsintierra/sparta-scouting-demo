@@ -10,121 +10,186 @@ from typing import Dict, List, Tuple
 from utils.i18n import t, get_language
 
 
-def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str, str]]]:
+def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str]]]:
     """
-    Retorna métricas relevantes por posición
+    Retorna métricas relevantes por posición.
+    ✅ CORREGIDO: Devuelve una clave 'mold_metrics' separada para el perfil del molde.
     
     Returns:
         Dict con:
-        - 'primary': Métricas principales (6 columnas)
-        - 'radar': Métricas para radar chart (6-7 dimensiones)
-        - 'labels': Labels traducidos
+        - 'primary_comparison': Métricas para la tarjeta comparativa (col_similar, label, col_molde)
+        - 'mold_metrics': Métricas para el perfil del molde (col_molde, label)
+        - 'radar': Métricas para radar chart (col_percentil, label)
     """
     lang = get_language()
-    
-    # Mapeo de posiciones normalizadas
     pos_normalizada = posicion.lower()
-    
 
+    # Base de métricas para evitar repetición
+    metricas_base = {
+        'delantero': [
+            ('goals_p90', '⚽ Goles'), 
+            ('xG_p90', '🎯 xG'), 
+            ('assists_p90', '🅰️ Asist.'),
+            ('xA_p90', '📤 xA'), 
+            ('dribbles_p90', '🎪 Dribbles')
+        ],
+        'mediocampista': [
+            ('prog_passes_p90', '⬆️ Prog. Pass'), 
+            ('xA_p90', '📤 xA'), 
+            ('assists_p90', '🅰️ Asist.'),
+            ('recoveries_p90', '🔄 Recup.'), 
+            ('dribbles_p90', '🎪 Dribbles')
+        ],
+        'defensor': [
+            ('recoveries_p90', '🔄 Recup.'), 
+            ('aerial_won_p90', '✈️ Aéreos'), 
+            ('prog_passes_p90', '⬆️ Prog. Pass'),
+            ('tackles_p90', '🛡️ Tackles'), 
+            ('interceptions_p90', '🚧 Interc.')
+        ],
+        'arquero': [
+            ('saves_p90', '🧤 Atajadas'), 
+            ('saves_pct', '📊 % Ataj.'), 
+            ('clean_sheets_pct', '🛡️ Valla Inv.'),
+            ('sweeper_p90', '🏃 Sweeper'), 
+            ('claims_p90', '✊ Salidas')
+        ],
+        'generico': [
+            ('recoveries_p90', '🔄 Recup.'), 
+            ('prog_passes_p90', '⬆️ Prog. Pass'), 
+            ('aerial_won_p90', '✈️ Aéreos'),
+            ('xA_p90', '📤 xA'), 
+            ('xG_p90', '🎯 xG')
+        ]
+    }
+
+    # Radar
+    radares = {
+        'delantero': [
+            ('pct_xG', 'xG'), 
+            ('pct_xA', 'xA'), 
+            ('pct_dribbles', 'Dribbles'), 
+            ('pct_prog_passes', 'Pases Prog.'), 
+            ('pct_aerial', 'Aéreos'), 
+            ('pct_rating', 'Rating')
+        ],
+        'mediocampista': [
+            ('pct_prog_passes', 'Pases Prog.'), 
+            ('pct_xA', 'xA'), 
+            ('pct_dribbles', 'Dribbles'), 
+            ('pct_recoveries', 'Recuperaciones'), 
+            ('pct_xG', 'xG'), 
+            ('pct_rating', 'Rating')
+        ],
+        'defensor': [
+            ('pct_aerial', 'Aéreos'), 
+            ('pct_recoveries', 'Recuperaciones'), 
+            ('pct_tackles', 'Tackles'), 
+            ('pct_interceptions', 'Intercepciones'), 
+            ('pct_prog_passes', 'Pases Prog.'), 
+            ('pct_rating', 'Rating')
+        ],
+        'arquero': [
+            ('pct_saves', 'Atajadas'), 
+            ('pct_saves_pct', '% Ataj.'), 
+            ('pct_clean_sheets', 'Vallas Inv.'), 
+            ('pct_sweeper', 'Sweeper'), 
+            ('pct_rating', 'Rating')
+        ],
+        'generico': [
+            ('pct_rating', 'Rating'), 
+            ('pct_prog_passes', 'Pases Prog.'), 
+            ('pct_recoveries', 'Recuperaciones'), 
+            ('pct_aerial', 'Aéreos'), 
+            ('pct_xA', 'xA'), 
+            ('pct_xG', 'xG')
+        ]
+    }
+    
+    # Determinar clave de posición
     if 'arquero' in pos_normalizada or 'goalkeeper' in pos_normalizada or 'portero' in pos_normalizada or 'goleiro' in pos_normalizada:
-        return {
-            'primary': [
-                ('destino_rating', '⭐ Rating', 'rating_promedio'),
-                ('destino_saves', '🧤 Atajadas', 'saves_p90'),
-                ('destino_saves_pct', '📊 % Ataj.', 'saves_pct'),
-                ('destino_clean_sheets', '🛡️ Valla Inv.', 'clean_sheets_pct'),
-                ('destino_sweeper', '🏃 Sweeper', 'sweeper_p90'),
-                ('destino_claims', '✊ Salidas', 'claims_p90')
-            ],
-            'radar': [
-                ('pct_saves', 'Saves' if lang == 'en' else 'Atajadas'),
-                ('pct_saves_pct', 'Save %' if lang == 'en' else '% Ataj.'),
-                ('pct_clean_sheets', 'Clean Sheets' if lang == 'en' else 'Vallas Inv.'),
-                ('pct_sweeper', 'Sweeper' if lang == 'en' else 'Sweeper'),
-                ('pct_rating', 'Rating' if lang == 'en' else 'Rating')
-            ]
-        }
-
+        clave_pos = 'arquero'
     elif 'delantero' in pos_normalizada or 'forward' in pos_normalizada:
-        return {
-            'primary': [
-                ('destino_rating', '⭐ Rating', 'rating_promedio'),
-                ('destino_goles', '⚽ Goles', 'goals_p90'),
-                ('destino_xg', '🎯 xG', 'xG_p90'),
-                ('destino_asistencias', '🅰️ Asist.', 'assists_p90'),
-                ('destino_xa', '📤 xA', 'xA_p90'),
-                ('destino_dribbles', '🎪 Dribbles', 'dribbles_p90')
-            ],
-            'radar': [
-                ('pct_xG', 'xG' if lang == 'en' else 'xG'),
-                ('pct_xA', 'xA' if lang == 'en' else 'xA'),
-                ('pct_dribbles', 'Dribbles' if lang == 'en' else 'Dribbles'),
-                ('pct_prog_passes', 'Prog. Pass' if lang == 'en' else 'Pases Prog.'),
-                ('pct_aerial', 'Aerial' if lang == 'en' else 'Aéreos'),
-                ('pct_rating', 'Rating' if lang == 'en' else 'Rating')
-            ]
-        }
-    
+        clave_pos = 'delantero'
     elif 'mediocampista' in pos_normalizada or 'midfielder' in pos_normalizada or 'medio' in pos_normalizada:
-        return {
-            'primary': [
-                ('destino_rating', '⭐ Rating', 'rating_promedio'),
-                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('destino_xa', '📤 xA', 'xA_p90'),
-                ('destino_asistencias', '🅰️ Asist.', 'assists_p90'),
-                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
-                ('destino_dribbles', '🎪 Dribbles', 'dribbles_p90')
-            ],
-            'radar': [
-                ('pct_prog_passes', 'Prog. Pass' if lang == 'en' else 'Pases Prog.'),
-                ('pct_xA', 'xA' if lang == 'en' else 'xA'),
-                ('pct_dribbles', 'Dribbles' if lang == 'en' else 'Dribbles'),
-                ('pct_recoveries', 'Recoveries' if lang == 'en' else 'Recuperaciones'),
-                ('pct_xG', 'xG' if lang == 'en' else 'xG'),
-                ('pct_rating', 'Rating' if lang == 'en' else 'Rating')
-            ]
-        }
-    
+        clave_pos = 'mediocampista'
     elif 'defensor' in pos_normalizada or 'defender' in pos_normalizada or 'defensa' in pos_normalizada:
-        return {
-            'primary': [
-                ('destino_rating', '⭐ Rating', 'rating_promedio'),
-                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
-                ('destino_aereos', '✈️ Aéreos', 'aerial_won_p90'),
-                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('destino_tackles', '🛡️ Tackles', 'tackles_p90'),
-                ('destino_interceptions', '🚧 Interc.', 'interceptions_p90')
-            ],
-            'radar': [
-                ('pct_aerial', 'Aerial' if lang == 'en' else 'Aéreos'),
-                ('pct_recoveries', 'Recoveries' if lang == 'en' else 'Recuperaciones'),
-                ('pct_tackles', 'Tackles' if lang == 'en' else 'Tackles'),
-                ('pct_interceptions', 'Interceptions' if lang == 'en' else 'Intercepciones'),
-                ('pct_prog_passes', 'Prog. Pass' if lang == 'en' else 'Pases Prog.'),
-                ('pct_rating', 'Rating' if lang == 'en' else 'Rating')
-            ]
-        }
-    
+        clave_pos = 'defensor'
     else:
-        # Fallback genérico (arquero, lateral, etc.)
-        return {
-            'primary': [
-                ('destino_rating', '⭐ Rating', 'rating_promedio'),
-                ('destino_recoveries', '🔄 Recup.', 'recoveries_p90'),
-                ('destino_prog_passes', '⬆️ Prog. Pass', 'prog_passes_p90'),
-                ('destino_aereos', '✈️ Aéreos', 'aerial_won_p90'),
-                ('destino_xa', '📤 xA', 'xA_p90'),
-                ('destino_xg', '🎯 xG', 'xG_p90')
-            ],
-            'radar': [
-                ('pct_rating', 'Rating' if lang == 'en' else 'Rating'),
-                ('pct_prog_passes', 'Prog. Pass' if lang == 'en' else 'Pases Prog.'),
-                ('pct_recoveries', 'Recoveries' if lang == 'en' else 'Recuperaciones'),
-                ('pct_aerial', 'Aerial' if lang == 'en' else 'Aéreos'),
-                ('pct_xA', 'xA' if lang == 'en' else 'xA'),
-                ('pct_xG', 'xG' if lang == 'en' else 'xG')
-            ]
+        clave_pos = 'generico'
+
+    # Construir el diccionario de retorno
+    
+    # 1. Métricas del molde (simple: col_molde, label)
+    mold_metrics = [('rating_promedio', '⭐ Rating')] + metricas_base[clave_pos]
+    
+    # 2. Métricas de comparación (complejo: col_similar, label, col_molde)
+    primary_comparison = []
+    for col_molde, label in mold_metrics:
+        # El prefijo "destino_" más el nombre de la columna del molde
+        col_similar = f"destino_{col_molde}".replace("_promedio", "").replace("_p90", "")
+        
+        # Ajustes manuales para nombres inconsistentes
+        if col_molde == 'rating_promedio': 
+            col_similar = 'destino_rating'
+        if col_molde == 'goals_p90': 
+            col_similar = 'destino_goles'
+        if col_molde == 'assists_p90': 
+            col_similar = 'destino_asistencias'
+        if col_molde == 'aerial_won_p90': 
+            col_similar = 'destino_aereos'
+        if col_molde == 'saves_p90': 
+            col_similar = 'destino_saves'
+        if col_molde == 'saves_pct': 
+            col_similar = 'destino_saves_pct'
+        if col_molde == 'clean_sheets_pct': 
+            col_similar = 'destino_clean_sheets'
+        if col_molde == 'prog_passes_p90':
+            col_similar = 'destino_prog_passes'
+        if col_molde == 'recoveries_p90':
+            col_similar = 'destino_recoveries'
+        if col_molde == 'dribbles_p90':
+            col_similar = 'destino_dribbles'
+        if col_molde == 'xG_p90':
+            col_similar = 'destino_xg'
+        if col_molde == 'xA_p90':
+            col_similar = 'destino_xa'
+        if col_molde == 'tackles_p90':
+            col_similar = 'destino_tackles'
+        if col_molde == 'interceptions_p90':
+            col_similar = 'destino_interceptions'
+        if col_molde == 'sweeper_p90':
+            col_similar = 'destino_sweeper'
+        if col_molde == 'claims_p90':
+            col_similar = 'destino_claims'
+        
+        primary_comparison.append((col_similar, label, col_molde))
+
+    # 3. Radar (traducir etiquetas según idioma)
+    radar_metrics = []
+    for col_pct, label_es in radares[clave_pos]:
+        # Traducciones al inglés
+        traducciones = {
+            "Pases Prog.": "Prog. Pass",
+            "Recuperaciones": "Recoveries",
+            "Aéreos": "Aerial",
+            "Intercepciones": "Interceptions",
+            "Atajadas": "Saves",
+            "% Ataj.": "Save %",
+            "Vallas Inv.": "Clean Sheets"
         }
+        
+        label_en = label_es
+        for es, en in traducciones.items():
+            label_en = label_en.replace(es, en)
+        
+        radar_metrics.append((col_pct, label_en if lang == 'en' else label_es))
+
+    return {
+        'primary_comparison': primary_comparison,
+        'mold_metrics': mold_metrics,
+        'radar': radar_metrics
+    }
 
 
 def mostrar_tarjeta_jugador_adaptativa(jugador_detalle: pd.Series, molde: pd.Series, unique_key: str):

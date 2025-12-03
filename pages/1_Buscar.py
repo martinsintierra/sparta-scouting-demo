@@ -208,27 +208,22 @@ if nombre_buscar:
             
             cols_stats = st.columns(6)
             
-            for idx, (col_nombre, emoji_label, col_molde_key) in enumerate(config_molde['primary']):
+            metrics_to_show = config_molde['mold_metrics']
+
+            # Desempaquetamos solo dos valores: la clave de la columna y la etiqueta
+            for idx, (col_key, label) in enumerate(metrics_to_show):
                 with cols_stats[idx]:
-                    if col_molde_key in row_origen.index:
-                        valor = row_origen[col_molde_key]
-                        
-                        # Convertir NaN/None a "N/A"
-                        if pd.isna(valor):
-                            st.metric(emoji_label, "N/A")
-                        else:
-                            # Mostrar valor con 2 decimales
-                            st.metric(emoji_label, f"{valor:.2f}")
+                    # Verificamos si la clave existe y si el valor no es nulo
+                    if col_key in row_origen and pd.notna(row_origen[col_key]):
+                        valor = row_origen[col_key]
+                        st.metric(label, f"{valor:.2f}")
                     else:
-                        # La columna no existe en el dataframe
-                        st.metric(emoji_label, "N/A")
-                        logger.warning(f"Columna '{col_molde_key}' no encontrada en row_origen para {row_origen['player']}")
-            
-            # Info de búsqueda
-            st.info(
-                f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**"
-                if get_language() == 'es' else
-                f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**"
+                        st.metric(label, "N/A")
+                        # Info de búsqueda
+                        st.info(
+                            f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**"
+                            if get_language() == 'es' else
+                            f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**"
             )
             
             # ========== TABS DE RESULTADOS ==========

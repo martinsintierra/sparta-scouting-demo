@@ -205,24 +205,28 @@ if nombre_buscar:
             
             # ✅ NUEVO: Mostrar stats ESPECÍFICAS de la posición
             st.markdown(f"#### 📊 Métricas Clave - {posicion_molde}")
-            
-            cols_stats = st.columns(6)
-            
-            for idx, (col_nombre, emoji_label, col_molde_key) in enumerate(config_molde['primary']):
-                with cols_stats[idx]:
-                    if col_molde_key in row_origen.index:
-                        valor = row_origen[col_molde_key]
-                        
-                        # Convertir NaN/None a "N/A"
-                        if pd.isna(valor):
-                            st.metric(emoji_label, "N/A")
-                        else:
-                            # Mostrar valor con 2 decimales
-                            st.metric(emoji_label, f"{valor:.2f}")
+
+            # 🔍 DEBUG: Ver qué columnas tiene row_origen
+            with st.expander("🐛 DEBUG - Ver datos del molde"):
+                st.write("**Columnas disponibles en row_origen:**")
+                st.write(row_origen.index.tolist())
+                
+                st.write("\n**Valores de métricas clave:**")
+                debug_cols = ['rating_promedio', 'prog_passes_p90', 'xA_p90', 
+                              'assists_p90', 'recoveries_p90', 'dribbles_p90',
+                              'saves_p90', 'saves_pct', 'aerial_won_p90']
+                
+                for col in debug_cols:
+                    if col in row_origen.index:
+                        st.write(f"- {col}: {row_origen[col]}")
                     else:
-                        # La columna no existe en el dataframe
-                        st.metric(emoji_label, "N/A")
-                        logger.warning(f"Columna '{col_molde_key}' no encontrada en row_origen para {row_origen['player']}")
+                        st.write(f"- {col}: ❌ NO EXISTE EN DATAFRAME")
+                
+                st.write("\n**Config de posición:**")
+                st.json(config_molde['primary'])
+
+            # Luego el código normal de las métricas...
+            cols_stats = st.columns(6)
             
             # Info de búsqueda
             st.info(

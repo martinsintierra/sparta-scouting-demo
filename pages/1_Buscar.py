@@ -227,6 +227,7 @@ if nombre_buscar:
 
             # Luego el código normal de las métricas...
             cols_stats = st.columns(6)
+            st.write("DEBUG - Columnas totales:", df_players_index.columns.tolist())
             
             # Info de búsqueda
             st.info(

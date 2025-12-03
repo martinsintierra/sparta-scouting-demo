@@ -220,10 +220,10 @@ if nombre_buscar:
                     else:
                         st.metric(label, "N/A")
                         # Info de búsqueda
-                        st.info(
-                            f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**"
-                            if get_language() == 'es' else
-                            f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**"
+            st.info(
+                f"💡 Buscando jugadores que jueguen estadísticamente como **{row_origen['player']} ({temp_origen})**"
+                if get_language() == 'es' else
+                f"💡 Searching for players who play statistically like **{row_origen['player']} ({temp_origen})**"
             )
             
             # ========== TABS DE RESULTADOS ==========

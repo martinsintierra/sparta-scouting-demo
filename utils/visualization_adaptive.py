@@ -105,6 +105,11 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str]]]:
             ('pct_xG', 'xG')
         ]
     }
+        config['mold_metrics'] = [
+        (item[2], item[1]) for item in config['primary']
+    ]
+    
+    return config
     
     # Determinar clave de posición
     if 'arquero' in pos_normalizada or 'goalkeeper' in pos_normalizada or 'portero' in pos_normalizada or 'goleiro' in pos_normalizada:

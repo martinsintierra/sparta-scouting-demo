@@ -173,10 +173,6 @@ if nombre_buscar:
                 _client=client
             )
             
-            # === DEBUG TEMP ===
-            with st.expander("🕵️ DEBUG: ¿Qué datos trae el molde?"):
-                st.write(percentiles_molde)
-            # =================================
 
             row_origen_enriquecido = row_origen.copy()
             for key, value in percentiles_molde.items():

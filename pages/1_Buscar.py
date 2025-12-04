@@ -216,7 +216,7 @@ if nombre_buscar:
             for idx, (col_molde_key, emoji_label) in enumerate(config_molde['mold_metrics']):
                 with cols_stats[idx]:
                     if col_molde_key in row_origen.index:
-                        valor = row_origen[col_molde_key]
+                        valor = row_origen_enriquecido[col_molde_key]
                         
                         if pd.isna(valor):
                             st.metric(emoji_label, "N/A")

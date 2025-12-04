@@ -105,7 +105,7 @@ def get_position_metrics(posicion: str) -> Dict[str, List[Tuple[str, str]]]:
             ('pct_xG', 'xG')
         ]
     }
-        config['mold_metrics'] = [
+    config['mold_metrics'] = [
         (item[2], item[1]) for item in config['primary']
     ]
     
